@@ -105,6 +105,19 @@ where the terrain case has one. Two such measurements exist: 0.64 of vehicle
 weight in very soft ground (wes_tr3641) and 0.54 in snow for the 1/5 scale
 model (villacres2023).
 
+**Motion resistance.** Two routes, and they overlap. Bekker compaction
+resistance is mechanistic. The rolling resistance coefficient c_rr from
+rimani_week4_mobility is an empirical lump that already contains compaction.
+Adding both double counts, so the code takes the larger, reports both, and
+says which one won. On the Titan proxy terrain c_rr wins by two orders of
+magnitude, which is worth knowing before quoting a compaction number.
+
+**Motor sizing.** Following rimani_week4_mobility Step 4, the loop reports the
+gear ratio implied by the speed requirement and the motor torque a datasheet
+would have to supply, tau_motor about 2 tau_screw / (G eta_g). That is the
+datasheet match the course teaches, and it replaces the mass regression that
+used to sit here.
+
 **Torque and power.** The power-screw relation. The helix acts as a screw jack
 against the soil:
 
@@ -115,6 +128,14 @@ F_axial = 2*pi*eta*T / p        eta = tan(lead) / tan(lead + atan(mu))
 For realistic lead angles this gives efficiencies around 0.2 to 0.4, which is
 why screws are slow and power hungry and why the power system tends to drive
 the design.
+
+**Feasibility checks now applied.** Mass within the delivered cap, radius to
+sinkage at least 6 (rimani_week4_mobility, replacing the looser z below 0.3 D
+rule), thrust available against thrust required, overturning margin at least
+2, mobility fraction between 0.15 and 0.60, and obstacle capability against
+the 100 mm requirement using h_max about 0.5 D. The last one is an analogy
+from wheels, and whether a screw drum climbs like a wheel of the same diameter
+is not established anywhere in `sources.yaml`.
 
 **Validity, stated plainly.** villacres2023 is explicit that Bekker-derived
 scroll models hold only while sinkage stays below the flight height, that is
@@ -140,18 +161,152 @@ pitch dominant in water. `screw.py` carries all three as
 
 ---
 
-## 4. What is still a placeholder
+## 4. The actuator question, and what actually matters
 
-Search the source for `PLACEHOLDER` and `ASSUMED`. The list is now short:
+An earlier version of this package carried an invented power law
+`m = a * T^b` for motors and gearboxes, fitted to synthetic rows in
+`data/actuators.csv`. Both are gone. Not one source in `sources.yaml` gives a
+rated torque and a mass for the same actuator, so that regression could not be
+fitted, checked or defended. `fit_mers.py` now prints exactly which rows are
+missing which half.
+
+The method taught in rimani_week4_mobility does not need it. It sizes the
+drive by torque and speed, matches a datasheet, and takes the module mass from
+a bracket:
+
+> Small terrestrial prototypes: about 0.5 to 2 kg per wheel module;
+> flight-like designs are typically higher due to sealing, redundancy, and
+> thermal and radiation constraints.
+
+cross-checked against a drivetrain mass fraction of 10 to 25 percent of rover
+mass. The bracket is corroborated independently: the ExoMars centre wheel
+motor and gear assembly is 1.25 kg (patel2005 Table 37), which sits inside it.
+So `mers.py` now uses a module mass of 1.5 kg per driven screw, a choice
+inside a sourced range, and reports the gear ratio and motor torque next to
+it. `MassModel(actuator_model="power_law")` exists for the day someone
+collects catalogue data, and refuses to run until the coefficients are
+supplied.
+
+**And then the sensitivity study says the whole question barely matters.**
+Sweeping each uncertain input across its plausible range, with everything else
+at the baseline:
+
+| Input | Range | Span in total mass |
+|---|---|---|
+| drum areal density | 6 to 24 kg/m2 | 71 % |
+| blade areal density | 9 to 36 kg/m2 | 28 % |
+| drive duty cycle | 0.05 to 0.40 | 7 % |
+| power source | MMRTG to SNAP-19 | 5 % |
+| soil-on-metal friction | 0.4 to 0.8 | 3 % |
+| **drive module mass** | **0.5 to 2.0 kg** | **2 %** |
+| design slip | 0.10 to 0.40 | 2 % |
+| drivetrain efficiency | 0.47 to 0.78 | 2 % |
+| rolling resistance c_rr | 0.10 to 0.25 | 1 % |
+
+On a screw vehicle the running gear carries the mobility mass and the
+actuators do not. Doubling the drum areal density moves the answer thirty
+times further than the whole 0.5 to 2 kg module bracket. So the thing to go
+and measure is the mass per square metre of a drum and a helix, not a motor
+regression. `run_example.py` prints this table on every run, so it stays
+honest as the model changes.
+
+## 4a. What a second pass through the papers turned up
+
+The first pass took numbers from summaries. A verification pass read the
+papers themselves, confirmed every value already in the code, and found
+several more that were being left on the table.
+
+**A sourced areal density for the drum, the dominant uncertainty.**
+patel2005 Table 68 gives mass, diameter and width for the wheels of five
+normalised micro-rover chassis. Dividing mass by the curved shell area gives
+the areal density this package needs:
+
+```
+Crab 12.6   ELMS 18.3 (body text) / 31.8 (Table 68)   Marsokhod 24.5
+Sojourner 35.0   Shrimp 35.0   Nanokhod 53.1          kg/m2
+```
+
+and patel2005 Table 14 gives grouser mass as a linear function of height,
+58.224 kg per metre of height for 20 grousers of 0.1 m width, which is
+29.1 kg per square metre of blade face. Both are now in
+`data/running_gear.csv` with the derivation and the caveats written out. The
+blade default has moved from an invented 18 to the sourced 29.1.
+
+**The drum shell is a requirement, not an input.** Because the running gear
+dominates the budget, `run_example.py` now solves for the areal density at
+which the converged mass reaches the delivered cap:
+
+```
+delivered mass cap                       344 kg   [tandem_tm2022]
+closure limit, this geometry            24.8 kg/m2
+micro-rover wheel evidence range        12.6 to 53.1 kg/m2   [patel2005]
+```
+
+Four of the seven real wheels are above that limit. They are 10 to 14 cm
+wheels hollowed from aluminium billet and a 0.6 to 0.8 m drum is a thin
+rolled shell on ribs, so this is an upper bound rather than a contradiction.
+It is still the first number to go and check, and it is now stated as a
+structural requirement instead of buried in a default.
+
+**A real screw drum, recovered from a table that text extraction had lost.**
+richter2022 Table I is an image, so the first pass could not read it. Reading
+the page directly gives the ARCSnake body module at 1.0 kg for a 128 mm by
+196 mm screw segment, which is 12.7 kg per square metre of drum surface, with
+the motor, sun gear, power electronics, IMU, single board computer and network
+switch all inside that 1.0 kg. The bare shell is lighter. That is a screw and
+not a wheel, and it is the closest thing to a measurement in the whole set, so
+it is now what justifies the 12.0 kg/m2 default rather than a scaling
+argument. The same table gives the system mass of 6.1 kg, 310 W per module and
+1240 W for the four-module system, all now in the database.
+
+**Genta's own mobility mass budget, which settles the module question.**
+genta2011 Section 3.5: 400 g per traction motor, 1.5 kg per corner including
+a 20 percent allowance, 6 kg of mobility on a 40 kg Titan rover. That is a
+Titan design, not a terrestrial wheel module, and it agrees exactly with the
+1.5 kg per driven screw this package assumes. Both rows are now in
+`data/actuators.csv`. Note the architecture: the motor sits in the wheel hub
+with no reduction gear at all, turning at 2.97 rpm. This package assumes a
+5000 rpm motor and reports a 938:1 gear ratio. Direct drive is a real
+alternative and it is worth a line in the paper.
+
+**A Titan-specific rolling resistance coefficient.** genta2011 uses f = 0.10,
+being the computed value multiplied by a safety factor of 3. That replaces
+the 0.15 taken from the course terrain table for the Titan proxy case.
+
+**A quantified flotation comparison.** genta2011 reports 8.3 mm of sinkage
+and 6.98 kPa maximum ground pressure for its 40 kg wheeled Titan rover on the
+same lunar-proxy soil. The converged screw design here sits near 1.7 kPa at
+several times the mass. That is the flotation argument for screws measured
+against a real Titan concept rather than asserted, and `run_example.py` prints
+the comparison.
+
+**Two more screw failure modes worth stating.** villacres2023 records that the
+MSA became immobilised in mud at 10 to 15 percent moisture content, with the
+material sticking to the scrolls, on ground firm enough to carry its weight.
+chen2025 records outright stall in saturated sand, where rolling beat screwing
+by a factor of 27. Neither is modelled here, and both belong in the
+limitations paragraph.
+
+**Verification note.** Every value attributed to genta2011,
+zimmerman_postHuygens, matthies2017, green2021 and sagara2025 was checked
+against the paper text on this pass. All held.
+
+## 4b. What is still a placeholder
 
 | Placeholder | Where | How to remove it |
 |---|---|---|
-| motor and gearbox mass relations `m = a*T^b` | `mers.py` | No published regression exists in any indexed source; they give discrete points only (Maxon RE-25 at 130 g, RE-20 at about 60 g, patel2005). Fill `data/actuators.csv` from a catalogue, run `fit_mers.py`, paste the coefficients back. One afternoon of work. |
-| drum and blade areal densities | `mers.py` | green2021 gives a 3.4 kg four-screw vehicle but no screw geometry, so it cannot be inverted. Calibrate against any vehicle with both a mobility mass and drum dimensions. `validate.py` flags when the error exceeds 30 percent. |
+| drum and blade areal densities | `mers.py` | The dominant uncertainty, by a wide margin. green2021 gives a 3.4 kg four-screw vehicle but no screw geometry, so it cannot be inverted. Weigh a drum, or find one vehicle with both a mobility mass and drum dimensions. |
 | soil-on-metal friction coefficient | `screw.py` | Calibrate against one measured torque and thrust pair. |
 | Bekker parameters for the screw-specific terrain cases | `terrain.py` | `snow_msa` and `liquefied_soft` carry measured drawbar coefficients but assumed pressure-sinkage constants, because the trafficability reports give cone index, not Bekker constants. |
-| Titan soil parameters | `terrain.py` | Nothing to replace them with yet. genta2011 substitutes lunar regolith and says so. The code labels the case `titan_lunar_proxy` and prints a warning on every run that uses it. |
-| duty cycle, payload power, drag coefficient, frontal area, CG height | `sizing_loop.py` | Mission choices, not physics. Set them deliberately and record why. |
+| Titan soil parameters | `terrain.py` | Nothing to replace them with yet. genta2011 substitutes lunar regolith and says so. The code labels the case `titan_lunar_proxy` and warns on every run that uses it. |
+| c_rr for snow and liquefied ground | `terrain.py` | Not in the course table, assumed here. |
+| duty cycle, payload power, drag coefficient, frontal area, CG height, motor nominal speed | `sizing_loop.py` | Mission choices, not physics. Set them deliberately and record why. |
+
+**Two disagreements between sources, both left visible.** patel2005 gives a
+drivetrain efficiency chain of about 0.47 overall, rimani_week4_mobility gives
+0.7 to 0.85; `MassModel.drivetrain_efficiency_model` selects between them.
+patel2005 adopts c_rr = 0.05 for Mars, the course table gives 0.15 to 0.25 for
+very loose Mars soil; the value used is stated per terrain case.
 
 **One discrepancy to resolve.** patel2005 Table 9, citing Wong, gives dry sand
 as n = 1, k_c = 990, k_phi = 1.52e5. Wong's own printed set is usually quoted

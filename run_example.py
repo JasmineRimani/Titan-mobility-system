@@ -6,12 +6,15 @@ Writes outputs/baseline_breakdown.csv, outputs/trade_space.csv and, if
 matplotlib is installed, outputs/trade_space.png.
 """
 
+import copy
 import csv
+import dataclasses
 import math
 import os
 
 from sizing.environment import EARTH, MOON, TITAN
-from sizing.mers import MassModel
+from sizing.mers import (AREAL_DENSITY_EVIDENCE, AREAL_DENSITY_RANGE,
+                        MassModel, MODULE_MASS_RANGE_KG)
 from sizing.screw import (ScrewGeometry, sinkage, compaction_resistance,
                           contact_width, drawbar_available)
 from sizing.sizing_loop import Mission, size
@@ -87,9 +90,14 @@ def cross_check(res):
 
     p = res.performance["contact_pressure_kPa"]
     print(f"contact pressure, this design            {p:.2f} kPa")
+    print("  Genta 40 kg WHEELED Titan rover        6.98 kPa   [genta2011]")
     print("  lunar recommended design value         1.40 kPa   [wakabayashi2009]")
     print("  lunar allowable                        8.00 kPa   [wakabayashi2009]")
-    print("  terrestrial reference                 20.00 kPa   [wakabayashi2009]\n")
+    print("  terrestrial reference                 20.00 kPa   [wakabayashi2009]")
+    print("  A wheeled Titan rover at 40 kg sits at 6.98 kPa. This design is")
+    print("  heavier and still sits well below it. That is the flotation")
+    print("  argument for screws, quantified against a real Titan concept")
+    print("  rather than asserted.\n")
 
     print(f"cost of transport, this design           {res.performance['cost_of_transport']:.2f}")
     print("  CASPER, 3.4 kg screw rover on Earth      5.30      [green2021, calculated]\n")
@@ -163,6 +171,152 @@ def gravity_study(geom, terrain, m_fixed=200.0):
     print()
 
 
+
+def sensitivity(mission, geom, terrain, env, base):
+    """Which uncertain input actually moves the answer.
+
+    Each parameter is swept across its plausible range with everything else
+    held at the baseline, and the resulting span in converged total mass is
+    reported. Rank the list before deciding what to go and measure. There is
+    no point fitting a motor mass regression to three decimal places if the
+    drum areal density moves the answer ten times as far.
+    """
+    print("=" * 66)
+    print("SENSITIVITY: WHICH UNCERTAIN INPUT MOVES THE ANSWER")
+    print("=" * 66)
+
+    def run(mm=None, ms=None, gm=None, tr=None):
+        r = size(ms or mission, gm or geom, tr or terrain, env, mm or MassModel())
+        return r.total_mass
+
+    cases = []
+
+    def mass_model(**kw):
+        return dataclasses.replace(MassModel(), **kw)
+
+    lo, hi = MODULE_MASS_RANGE_KG
+    cases.append(("drive module mass, kg", lo, hi,
+                  run(mm=mass_model(module_mass=lo)),
+                  run(mm=mass_model(module_mass=hi)),
+                  "sourced bracket [rimani_week4_mobility]"))
+
+    alo, ahi = AREAL_DENSITY_RANGE
+    cases.append(("drum areal density, kg/m2", alo, ahi,
+                  run(mm=mass_model(drum_areal_density=alo)),
+                  run(mm=mass_model(drum_areal_density=ahi)),
+                  "micro-rover wheels [patel2005], see data/running_gear.csv"))
+
+    cases.append(("blade areal density, kg/m2", 14.6, 29.1,
+                  run(mm=mass_model(blade_areal_density=14.6)),
+                  run(mm=mass_model(blade_areal_density=29.1)),
+                  "one face against both faces of the grouser data [patel2005]"))
+
+    cases.append(("drivetrain efficiency", 0.472, 0.78,
+                  run(mm=mass_model(drivetrain_efficiency_model="patel")),
+                  run(mm=mass_model(drivetrain_efficiency_model="course")),
+                  "patel2005 against rimani_week4_mobility"))
+
+    cases.append(("power source, W/kg", 2.44, 3.14,
+                  run(mm=mass_model(source_specific_power=2.44)),
+                  run(mm=mass_model(source_specific_power=3.14)),
+                  "MMRTG against SNAP-19 [genta2011]"))
+
+    cases.append(("soil-on-metal friction", 0.4, 0.8,
+                  run(gm=dataclasses.replace(geom, soil_metal_friction=0.4)),
+                  run(gm=dataclasses.replace(geom, soil_metal_friction=0.8)),
+                  "ASSUMED, sets the screw efficiency"))
+
+    cases.append(("design slip", 0.10, 0.40,
+                  run(ms=dataclasses.replace(mission, design_slip=0.10)),
+                  run(ms=dataclasses.replace(mission, design_slip=0.40)),
+                  "course teaches 10-20 pc, screws reach 40 pc [villacres2023]"))
+
+    cases.append(("rolling resistance c_rr", 0.10, 0.25,
+                  run(tr=dataclasses.replace(terrain, c_rr=0.10)),
+                  run(tr=dataclasses.replace(terrain, c_rr=0.25)),
+                  "loose regolith to very loose [rimani_week4_mobility]"))
+
+    cases.append(("drive duty cycle", 0.05, 0.40,
+                  run(ms=dataclasses.replace(mission, drive_duty=0.05)),
+                  run(ms=dataclasses.replace(mission, drive_duty=0.40)),
+                  "ASSUMED, a mission choice"))
+
+    cases.sort(key=lambda c: -abs(c[4] - c[3]))
+    print(f"baseline total mass {base:.1f} kg\n")
+    print(f"{'parameter':28s} {'low':>8s} {'high':>8s} {'m_lo':>8s} {'m_hi':>8s} "
+          f"{'span':>8s} {'span pc':>8s}")
+    for name, lo_v, hi_v, m_lo, m_hi, note in cases:
+        span = abs(m_hi - m_lo)
+        print(f"{name:28s} {lo_v:8.3f} {hi_v:8.3f} {m_lo:8.1f} {m_hi:8.1f} "
+              f"{span:8.1f} {100*span/base:7.1f}%")
+    print()
+    for name, _, _, _, _, note in cases:
+        print(f"  {name:28s} {note}")
+    print()
+    top = cases[0][0]
+    print(f"Ranked by effect, the input worth measuring first is: {top}.")
+    print("Spend the effort there, not on the parameter that is easiest to")
+    print("look up.\n")
+
+
+
+def closure_limit(mission, geom, terrain, env):
+    """Heaviest drum shell the design can carry and still close.
+
+    The running gear dominates the mass budget, so the areal density of the
+    drum is not just an input, it is a structural requirement. Solve for the
+    value at which converged total mass reaches the delivered mass cap, and
+    state it as a requirement on the drum design.
+    """
+    import dataclasses as dc
+
+    def total(rho):
+        return size(mission, geom, terrain, env,
+                    dc.replace(MassModel(), drum_areal_density=rho)).total_mass
+
+    cap = mission.delivered_mass_cap
+    lo, hi = 1.0, 200.0
+    if total(lo) > cap:
+        return None
+    for _ in range(60):
+        mid = 0.5 * (lo + hi)
+        if total(mid) <= cap:
+            lo = mid
+        else:
+            hi = mid
+    return 0.5 * (lo + hi)
+
+
+def running_gear_requirement(mission, geom, terrain, env, mm):
+    print("=" * 66)
+    print("DRUM SHELL AS A REQUIREMENT, NOT AN INPUT")
+    print("=" * 66)
+    limit = closure_limit(mission, geom, terrain, env)
+    alo, ahi = AREAL_DENSITY_RANGE
+    print(f"delivered mass cap                    {mission.delivered_mass_cap:6.0f} kg"
+          f"   [tandem_tm2022]")
+    print(f"assumed drum areal density            {mm.drum_areal_density:6.1f} kg/m2  CHOICE")
+    if limit is None:
+        print("The design does not close at any drum areal density.")
+        return
+    print(f"closure limit, this geometry          {limit:6.1f} kg/m2")
+    print(f"micro-rover wheel evidence range      {alo:6.1f} to {ahi:.1f} kg/m2"
+          f"   [patel2005]")
+    print()
+    for name, v in sorted(AREAL_DENSITY_EVIDENCE.items(), key=lambda kv: kv[1]):
+        flag = "closes" if v <= limit else "DOES NOT CLOSE"
+        print(f"    {name:16s} {v:5.1f} kg/m2   {flag}")
+    print()
+    if limit < ahi:
+        print("Read that as a requirement on the structure: the drum shell must")
+        print("come in under {:.0f} kg per square metre, and several real".format(limit))
+        print("micro-rover wheels do not. Those are 10 to 14 cm wheels hollowed")
+        print("from aluminium billet, and a 0.6 to 0.8 m drum is a thin rolled")
+        print("shell on ribs, so the comparison is an upper bound rather than a")
+        print("contradiction. It is still the number to go and check first.")
+    print()
+
+
 def main():
     os.makedirs(OUT, exist_ok=True)
     mission, geom = Mission(), ScrewGeometry()
@@ -173,6 +327,8 @@ def main():
     cross_check(res)
     gravity_study(geom, terrain, m_fixed=res.total_mass)
     gravity_study(geom, LIQUEFIED_SOFT, m_fixed=res.total_mass)
+    running_gear_requirement(mission, geom, terrain, TITAN, MassModel())
+    sensitivity(mission, geom, terrain, TITAN, res.total_mass)
 
     with open(os.path.join(OUT, "baseline_breakdown.csv"), "w", newline="") as f:
         w = csv.writer(f)

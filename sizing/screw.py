@@ -200,3 +200,39 @@ def torque_and_power(thrust_per_screw: float, geom: ScrewGeometry, omega: float)
 def cost_of_transport(power: float, weight: float, speed: float) -> float:
     """green2021 Eq. 1, dimensionless. COT = P / (W v)."""
     return power / max(weight * speed, 1e-9)
+
+
+def rolling_resistance(weight: float, terrain) -> float:
+    """R_r = c_rr * W.  rimani_week4_mobility.
+
+    Kept separate from Bekker compaction resistance. The two overlap
+    conceptually: c_rr is an empirical lump that already contains compaction
+    on soft ground. Using both double counts. sizing_loop uses whichever the
+    caller selects and says which.
+    """
+    return terrain.c_rr * weight
+
+
+def traction_limited_slope(mu: float) -> float:
+    """theta = arctan(mu), in degrees.  rimani_week4_mobility.
+
+    m g sin(theta) <= mu m g cos(theta), so mass and gravity cancel and the
+    traction-limited slope depends only on the available friction
+    coefficient. This is the closed form behind the gravity discussion.
+    """
+    return math.degrees(math.atan(mu))
+
+
+def radius_to_sinkage(z: float, geom: ScrewGeometry) -> float:
+    """r / z.  rimani_week4_mobility gives a design rule of r/z >= 6 to 10."""
+    return (geom.outer_diameter / 2.0) / max(z, 1e-9)
+
+
+def obstacle_capability(geom: ScrewGeometry, alpha: float = 0.5) -> float:
+    """h_max ~ alpha * d, alpha = 0.3 to 0.7.  rimani_week4_mobility.
+
+    Stated for wheels. Whether a screw drum climbs like a wheel of the same
+    diameter is not established anywhere in sources.yaml, so treat this as
+    an analogy that needs testing, not a result.
+    """
+    return alpha * geom.outer_diameter

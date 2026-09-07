@@ -34,3 +34,21 @@ mobility_power_level_titan,2.4,W,Genta 40 kg Titan rover on level ground,genta20
 mobility_power_slope_titan,34.0,W,Genta 40 kg Titan rover on a 20 degree slope,genta2011,direct
 delivered_science_payload_titan,100.0,kg,post-Huygens study with 5028 kg launch and 2600 kg injected,zimmerman_postHuygens,direct
 titan_surface_system_peak_power,60.0,W,post-Huygens surface system,zimmerman_postHuygens,direct
+genta_titan_sinkage,8.3,mm,40 kg four-wheel Titan rover on lunar-proxy soil,genta2011,direct
+genta_titan_contact_pressure,6.98,kPa,same rover and maximum ground pressure,genta2011,direct
+genta_titan_wheel_torque,0.12,N m,per wheel on level ground at 2.97 rpm,genta2011,direct
+genta_titan_rolling_radius,0.090,m,wheel rolling radius,genta2011,direct
+genta_titan_c_rr,0.10,-,rolling resistance coefficient used for Titan with a safety factor of 3,genta2011,direct
+genta_power_electronics_efficiency,0.80,-,assumed for the four traction motors,genta2011,direct
+casper_power_20rpm,12.5,W,range 10 to 15 W,green2021,direct
+casper_power_40rpm,22.5,W,range 20 to 25 W,green2021,direct
+casper_velocity_20rpm,0.05,m/s,lower end of the 5 to 18 cm/s range,green2021,direct
+casper_velocity_40rpm,0.18,m/s,upper end of the 5 to 18 cm/s range,green2021,direct
+msa_speed_snow,10.0,m/s,20 to 25 mph reported for the 1/5 scale model in snow,villacres2023,direct
+msa_mud_immobilisation_moisture,0.125,-,MSA stuck at 10 to 15 percent moisture content despite firm ground,villacres2023,direct
+backhoe_excavation_rate,100,kg/h,80 kg system at 200 W,green2021,direct
+cratos_excavation_rate,900,kg/h,at 100 W,green2021,direct
+arcsnake_module_power_max,310,W,per module at 12 to 60 V,richter2022,direct
+arcsnake_system_power_max,1240,W,four module system,richter2022,direct
+arcsnake_system_mass,6.1,kg,four module system with head,richter2022,direct
+arcsnake_system_length,1.287,m,maximum extended length,richter2022,direct

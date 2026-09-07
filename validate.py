@@ -33,7 +33,7 @@ import os
 import statistics
 
 from sizing.environment import EARTH
-from sizing.mers import (MassModel, actuator_mass, running_gear_mass)
+from sizing.mers import (MassModel, drive_module_mass, running_gear_mass)
 from sizing.screw import (ScrewGeometry, check_validity, compaction_resistance,
                           contact_width, kinematics, sinkage, torque_and_power)
 from sizing.terrain import CASES
@@ -133,14 +133,14 @@ def level_b(rows):
 
         z = sinkage(load, geom, terrain)
         r_comp = geom.n_screws * compaction_resistance(z, geom, terrain)
-        f_req = r_comp + w * 0.05         # level ground plus a rolling term,
-                                          # fr = 0.05 for unpaved ground [patel2005]
+        f_req = max(r_comp, terrain.c_rr * w)   # larger of Bekker compaction
+                                                # and the empirical c_rr lump
         omega, _ = kinematics(geom, v, slip)
         torque, p_mech = torque_and_power(f_req / geom.n_screws, geom, omega)
-        p_elec = geom.n_screws * p_mech / (mm.gearbox_efficiency * mm.motor_efficiency)
+        p_elec = geom.n_screws * p_mech / mm.drivetrain_efficiency
 
         m_pred = running_gear_mass(geom, mm) + geom.n_screws * (
-            actuator_mass(torque, mm) + mm.drive_electronics)
+            drive_module_mass(torque, mm) + mm.drive_electronics)
         m_act = f(r, "mobility_mass_kg")
         p_act = f(r, "power_W")
 
@@ -160,8 +160,9 @@ def level_b(rows):
               f" with like before drawing a conclusion.")
         if abs(m_pred - m_act) / m_act > 0.3:
             print("  -> mass error above 30 percent. The drum and blade areal")
-            print("     densities in mers.py are placeholders. Calibrate them")
-            print("     on this vehicle before trusting any converged design.")
+            print("     densities in mers.py are placeholders and they carry")
+            print("     most of the mobility mass. Calibrate them on this")
+            print("     vehicle before trusting any converged design.")
         if not check_validity(z, geom, quiet=True):
             print("  -> sinkage exceeds the blade height, so the model is")
             print("     outside its validity range [villacres2023].")

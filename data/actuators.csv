@@ -3,15 +3,10 @@ motor,Maxon,RE-25,,0.130,patel2005,Mass direct from the MER actuator description
 motor,Maxon,RE-20,,0.060,patel2005,Mass approximate in the source. Rated torque must come from the catalogue.
 motor,Maxon,RE-16,13.0,,patel2005,Sojourner actuator stall torque 13 N m. Motor mass not given in the source.
 actuator_assembly,JPL,MER drive actuator,43.0,,patel2005,Output torque at the wheel. RE25 plus 18.8 to 1 planetary plus 80 to 1 harmonic drive giving 1502 to 1. Assembly mass not given.
-screw_drive,Maxon,ECXSP16L + GPX16HP 35:1,1.6,,richter2022,ARCSnake screw drive continuous torque. Peak 2.0 N m. Mass not recoverable from the paper.
+screw_drive,Maxon,ECXSP16L + GPX16HP 35:1,1.6,,richter2022,ARCSnake screw drive continuous torque. Peak 2.0 N m.
 gearmotor,Pololu,4846 75:1,,,green2021,CASPER screw drive gear motor. Torque and mass not given in the paper.
-motor,SYNTHETIC,demo-1,0.5,0.09,SYNTHETIC_DEMO,Delete once real catalogue rows are entered.
-motor,SYNTHETIC,demo-2,2.0,0.28,SYNTHETIC_DEMO,Delete once real catalogue rows are entered.
-motor,SYNTHETIC,demo-3,8.0,0.95,SYNTHETIC_DEMO,Delete once real catalogue rows are entered.
-motor,SYNTHETIC,demo-4,30.0,3.10,SYNTHETIC_DEMO,Delete once real catalogue rows are entered.
-motor,SYNTHETIC,demo-5,120.0,10.4,SYNTHETIC_DEMO,Delete once real catalogue rows are entered.
-gearbox,SYNTHETIC,demo-1,5.0,0.22,SYNTHETIC_DEMO,Delete once real catalogue rows are entered.
-gearbox,SYNTHETIC,demo-2,20.0,0.75,SYNTHETIC_DEMO,Delete once real catalogue rows are entered.
-gearbox,SYNTHETIC,demo-3,80.0,2.60,SYNTHETIC_DEMO,Delete once real catalogue rows are entered.
-gearbox,SYNTHETIC,demo-4,300.0,8.90,SYNTHETIC_DEMO,Delete once real catalogue rows are entered.
-gearbox,SYNTHETIC,demo-5,1000.0,27.0,SYNTHETIC_DEMO,Delete once real catalogue rows are entered.
+gearmotor,not stated,ExoMars centre wheel motor and gear,,1.25,patel2005,Assembly mass calculated from Table 37: 2 units at 2.5 kg total. Output torque not stated. Sits inside the 0.5 to 2 kg per module bracket of rimani_week4_mobility and is the corroboration for it.
+motor,not stated,Genta Titan rover traction motor,,0.400,genta2011,In-hub direct drive with no reduction gear. Level-ground wheel torque 0.12 N m at 2.97 rpm. Mass direct.
+drive_module,not stated,Genta Titan rover corner,,1.500,genta2011,"One corner including a 20 percent allowance. Four corners give the 6 kg mobility subsystem of a 40 kg rover. Closest thing in the literature to the module mass this package assumes, and it agrees exactly."
+screw_body_module,not stated,ARCSnake body module,1.6,1.000,richter2022,"Table I. Screw actuator 1.6 N m continuous and 2.0 N m peak. The 1.0 kg is the whole body module including the screw shell and its electronics, not the actuator alone, so it is an upper bound for a drive module at this scale."
+joint_module,not stated,ARCSnake U-Joint,2.1,0.880,richter2022,Table I. 2.1 N m continuous and 2.7 N m peak. The body text separately quotes a measured 3.4 N m continuous output; the two disagree.

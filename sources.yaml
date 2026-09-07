@@ -228,3 +228,43 @@ osinski2015:
   doi: 10.1007/978-3-319-15847-1_19
   supplies:
     - Small screw vehicle mass breakdown, drums and helices 0.6621 kg, motors 0.3992 kg
+
+rimani_week4_mobility:
+  authors: J. Rimani
+  title: "Week 4: Mobility"
+  venue: Politecnico di Torino, space robotics course lecture notes
+  pdf: Week 4 - Mobility.pdf
+  supplies:
+    - Drive module mass bracket, 0.5 to 2 kg per wheel module, flight-like designs higher
+    - Drivetrain mass fraction about 10 to 25 percent of total rover mass for a wheeled rover
+    - Actuator mass fraction 30 to 40 percent for a legged robot
+    - Rolling resistance coefficients, hard flat road 0.01-0.02, sandy soil 0.05-0.10, loose lunar regolith 0.10-0.20, very loose Mars soil 0.15-0.25
+    - Drivetrain efficiency 0.7 to 0.85 overall
+    - Allowable slip 10 to 20 percent as a design assumption
+    - Radius to sinkage rule, r/z at least 6 to 10
+    - Obstacle capability, h_max about alpha times diameter with alpha 0.3 to 0.7
+    - Traction-limited slope, theta = arctan(mu), with mass and gravity cancelling
+    - Motor sizing chain, gear ratio from the speed requirement then tau_motor about 2 tau_wheel / (G eta_g)
+    - Power chain, P_ground = F v, P_wheel = F v / (1 - s), P_elec = P_wheel / eta
+    - Locomotion mode comparison table with max slope and TRL by architecture
+    - Wheel radii, Sojourner about 6 cm, MER about 12.5 cm, Curiosity about 25 cm, Perseverance about 26 cm
+  notes: >
+    This is the course's own sizing workflow. The package follows it: terrain
+    envelope, wheel or screw geometry, Bekker sinkage, allowable slip,
+    Mohr-Coulomb ceiling with Janosi-Hanamoto buildup, slope force balance,
+    torque, motor check, iterate.
+
+rimani_week3_manipulation:
+  authors: J. Rimani
+  title: "Week 3: Manipulation Fundamentals"
+  venue: Politecnico di Torino, space robotics course lecture notes
+  pdf: Week 3 - Manipulation Fundamentals.pdf
+  supplies:
+    - Worked example of an empirical mass scaling law, m_arm = 2.5 * reach * payload^0.3, with a 25 percent design margin
+    - Subsystem mass breakdown for an arm, structure 40-50 percent, actuation 25-35 percent, electronics 10-15 percent
+    - Actuator selection procedure, required torque and speed against a motor and gearbox datasheet
+  notes: >
+    Not used numerically in this package, which sizes mobility rather than
+    manipulation. It is the template for the FORM a mass estimating
+    relationship should take, and for the datasheet match at the end of the
+    chain.

@@ -16,11 +16,13 @@ import math
 from dataclasses import dataclass, field
 
 from .environment import Environment, TITAN
-from .mers import MassModel, actuator_mass, running_gear_mass, eps_mass
-from .screw import (ScrewGeometry, sinkage, compaction_resistance, bulldozing_flag,
-                    contact_width,
-                    check_validity, drawbar_available, kinematics,
-                    torque_and_power, cost_of_transport)
+from .mers import (MassModel, DRIVETRAIN_FRACTION_RANGE, drive_module_mass,
+                   eps_mass, required_motor_torque, running_gear_mass)
+from .screw import (ScrewGeometry, bulldozing_flag, check_validity,
+                    compaction_resistance, contact_width, cost_of_transport,
+                    drawbar_available, kinematics, obstacle_capability,
+                    radius_to_sinkage, rolling_resistance, sinkage,
+                    torque_and_power, traction_limited_slope)
 from .terrain import Terrain, TITAN_LUNAR_PROXY
 
 
@@ -55,7 +57,8 @@ class Mission:
     design_slip: float = 0.30
     drive_duty: float = 0.15
     drive_session_h: float = 4.0
-    max_sinkage_ratio: float = 0.30   # patel2005, sinkage below 0.3 D
+    min_radius_to_sinkage: float = 6.0   # r/z >= 6 to 10, rimani_week4_mobility
+    motor_nominal_rpm: float = 5000.0    # CHOICE, for reporting the gear ratio
     max_obstacle: float = 0.10
     delivered_mass_cap: float = 344.0
     cg_height: float = 0.6
@@ -107,7 +110,13 @@ def size(mission: Mission,
         load_per_screw = weight / geom.n_screws
 
         z = sinkage(load_per_screw, geom, terrain)
-        r_comp = geom.n_screws * compaction_resistance(z, geom, terrain)
+        # Two ways to get motion resistance, and they overlap. Bekker
+        # compaction is mechanistic; c_rr is an empirical lump that already
+        # contains compaction. Adding them double counts, so take the larger
+        # and report both.
+        r_bekker = geom.n_screws * compaction_resistance(z, geom, terrain)
+        r_crr = rolling_resistance(weight, terrain)
+        r_comp = max(r_bekker, r_crr)
 
         frontal_area = geom.n_screws * geom.outer_diameter * 1.2   # ASSUMED
         f_aero = 0.5 * env.atm_density * mission.drag_coefficient \
@@ -121,10 +130,17 @@ def size(mission: Mission,
 
         omega, _ = kinematics(geom, mission.target_speed, mission.design_slip)
         torque, p_mech = torque_and_power(f_required / geom.n_screws, geom, omega)
-        p_drive_elec = geom.n_screws * p_mech / (mm.gearbox_efficiency * mm.motor_efficiency)
+        p_drive_elec = geom.n_screws * p_mech / mm.drivetrain_efficiency
+
+        # rimani_week4_mobility Step 4: gear ratio from the speed requirement,
+        # then the motor torque the datasheet has to supply.
+        omega_motor = mission.motor_nominal_rpm * 2.0 * math.pi / 60.0
+        gear_ratio = omega_motor / max(omega, 1e-9)
+        motor_torque = required_motor_torque(torque, gear_ratio, mm)
 
         m_running = running_gear_mass(geom, mm)
-        m_actuators = geom.n_screws * (actuator_mass(torque, mm) + mm.drive_electronics)
+        m_actuators = geom.n_screws * (drive_module_mass(torque, mm)
+                                       + mm.drive_electronics)
         m_mobility = m_running + m_actuators
 
         p_house = mission.payload_power + mission.avionics_power + mission.thermal_power
@@ -153,6 +169,20 @@ def size(mission: Mission,
     if bulldozing_flag(z, geom):
         notes.append("z/D exceeds 0.06, so bulldozing resistance is no longer "
                      "negligible (patel2005, ellery2005) and is NOT modelled here.")
+    lo, hi = DRIVETRAIN_FRACTION_RANGE
+    drive_frac = m_actuators / m_total
+    if not (lo <= drive_frac <= hi):
+        notes.append(f"drive module mass is {drive_frac*100:.1f} percent of "
+                     f"total, outside the {lo*100:.0f} to {hi*100:.0f} percent "
+                     f"drivetrain fraction that rimani_week4_mobility quotes "
+                     f"for wheeled rovers. For a screw vehicle the running "
+                     f"gear, not the actuators, carries the mass, so this is "
+                     f"expected rather than wrong. Check it deliberately.")
+    if r_crr > r_bekker:
+        notes.append(f"motion resistance is set by the empirical c_rr "
+                     f"({r_crr:.1f} N) rather than Bekker compaction "
+                     f"({r_bekker:.1f} N). c_rr for this terrain is "
+                     f"{terrain.c_rr:.3f} [{terrain.c_rr_source}].")
     if terrain.evidence.startswith("PROXY"):
         notes.append(f"terrain '{terrain.name}' is a proxy, not a measurement: "
                      f"{terrain.evidence}")
@@ -189,12 +219,20 @@ def size(mission: Mission,
         "sinkage_ratio": z / geom.outer_diameter,
         "contact_pressure_kPa": load_per_screw / (
             contact_width(z, geom.outer_diameter) * geom.length) / 1000.0,
-        "compaction_resistance_N": r_comp,
+        "resistance_used_N": r_comp,
+        "resistance_bekker_N": r_bekker,
+        "resistance_crr_N": r_crr,
         "aero_drag_N": f_aero,
         "thrust_required_N": f_required,
         "thrust_available_N": f_available,
         "drawbar_margin": f_available / f_required if f_required > 0 else float("inf"),
         "screw_torque_Nm": torque,
+        "gear_ratio": gear_ratio,
+        "motor_torque_Nm": motor_torque,
+        "radius_to_sinkage": radius_to_sinkage(z, geom),
+        "obstacle_capability_m": obstacle_capability(geom),
+        "traction_limited_slope_deg": traction_limited_slope(
+            f_available / max(weight, 1e-9)),
         "screw_speed_rpm": omega * 60.0 / (2.0 * math.pi),
         "tip_speed_mps": geom.tip_speed(omega),
         "screw_efficiency": geom.screw_efficiency,
@@ -207,9 +245,10 @@ def size(mission: Mission,
     }
     checks = {
         "mass_within_delivered_cap": m_total <= mission.delivered_mass_cap,
-        "sinkage_within_limit": z / geom.outer_diameter <= mission.max_sinkage_ratio,
+        "radius_to_sinkage_ok": radius_to_sinkage(z, geom) >= mission.min_radius_to_sinkage,
         "thrust_available": f_available >= f_required,
         "overturning_margin_ge_2": overturn >= 2.0,
         "mobility_fraction_plausible": 0.15 <= m_mobility / m_total <= 0.60,
+        "obstacle_requirement_met": obstacle_capability(geom) >= mission.max_obstacle,
     }
     return Result(converged, it, m_total, masses, powers, performance, checks, notes)
