@@ -1,0 +1,36 @@
+quantity,value,unit,context,source_id,evidence
+drawbar_coefficient_max,0.64,-,Marsh Screw Amphibian in very soft or liquefied ground,wes_tr3641,direct
+drawbar_coefficient_max,0.54,-,Marsh Screw Amphibian 1/5 scale model in snow,villacres2023,direct
+slip_typical_max,0.40,-,screw propulsion as reported by Cole 1961,villacres2023,direct
+vehicle_cone_index,6,-,Marsh Screw Amphibian,villacres2023,direct
+vehicle_cone_index,16,-,M29C Weasel tracked benchmark,villacres2023,direct
+screw_rover_power,5.0,W,Ju et al. small screw rover on gravel,villacres2023,direct
+screw_rover_power,5.5,W,Ju et al. small screw rover on sand,villacres2023,direct
+screw_rover_power,6.0,W,Ju et al. small screw rover on grassland,villacres2023,direct
+casper_mass,3.4,kg,CASPER four-screw excavation rover,green2021,direct
+casper_power,30,W,CASPER at the optimal operating point,green2021,direct
+casper_speed,0.17,m/s,CASPER traverse 10.2 m/min,green2021,direct
+casper_cost_of_transport,5.30,-,CALCULATED from 30 W over 3.4 kg at Earth gravity and 0.17 m/s,green2021,calculated
+excavation_transport_rate,2.01,1/h,backhoe reference computed by the CASPER authors,green2021,calculated
+excavation_transport_rate,1.97,1/h,CASPER lower end,green2021,direct
+excavation_transport_rate,2.06,1/h,CASPER upper end,green2021,direct
+model_error_granular_scaling,0.09,-,granular scaling law lower bound of reported error,villacres2023,direct
+model_error_granular_scaling,0.36,-,granular scaling law upper bound of reported error,villacres2023,direct
+model_error_helical_scaling,0.03,-,helical granular scaling law lower bound on BP1 lunar analogue,villacres2023,direct
+model_error_helical_scaling,0.09,-,helical granular scaling law upper bound on BP1 lunar analogue,villacres2023,direct
+model_error_dem,0.045,-,DEM against hardware lower bound,villacres2023,direct
+model_error_dem,0.253,-,DEM against hardware upper bound,villacres2023,direct
+bearing_capacity_allowable,8.0,kPa,lunar soil allowable,wakabayashi2009,direct
+bearing_capacity_recommended,1.4,kPa,lunar soil recommended design value,wakabayashi2009,direct
+bearing_capacity_earth,20.0,kPa,terrestrial reference,wakabayashi2009,direct
+contact_pressure_optimum,1.96,kPa,crawler optimum of 2 kg per 100 cm2,wakabayashi2009,calculated
+slip_crawler_20deg,0.15,-,mesh crawler on a 20 degree slope with range 0.1 to 0.2,wakabayashi2009,direct
+slip_rigid_wheel_20deg,0.60,-,rigid wheel on a 20 degree slope,wakabayashi2009,direct
+chassis_fraction_K_min,0.30,-,planetary rovers chassis over total mass,patel2005,direct
+chassis_fraction_K_max,0.50,-,planetary rovers chassis over total mass,patel2005,direct
+science_payload_fraction_min,0.05,-,typical rover,ellery2005,direct
+science_payload_fraction_max,0.15,-,typical rover,ellery2005,direct
+mobility_power_level_titan,2.4,W,Genta 40 kg Titan rover on level ground,genta2011,direct
+mobility_power_slope_titan,34.0,W,Genta 40 kg Titan rover on a 20 degree slope,genta2011,direct
+delivered_science_payload_titan,100.0,kg,post-Huygens study with 5028 kg launch and 2600 kg injected,zimmerman_postHuygens,direct
+titan_surface_system_peak_power,60.0,W,post-Huygens surface system,zimmerman_postHuygens,direct

@@ -1,0 +1,230 @@
+# sources.yaml
+# Every source behind a number in this package. Cite by source_id from the
+# code, the CSVs and the README. "supplies" lists what this package actually
+# takes from each source, so a reader can check any value at its origin.
+#
+# pdf: the filename as shared with the class. Papers are distributed
+# separately; this file is the index, not a copy of them.
+
+villacres2023:
+  authors: J. Villacres, M. Barczyk, M. Lipsett
+  title: Literature review on Archimedean screw propulsion for off-road vehicles
+  venue: Journal of Terramechanics 108 (2023) 47-57
+  doi: 10.1016/j.jterra.2023.05.001
+  pdf: 1-s2.0-S0022489823000356-main.pdf
+  supplies:
+    - Cole (1961) analytical screw model, Eqs. 1-3, and its stated limitations
+    - Bekker/Nagaoka adaptation to a scroll and its validity limit (sinkage below flight height)
+    - MSA drawbar pull 54 percent of body weight in snow; VCI 6 for MSA vs 16 for M29C
+    - Seo et al. Taguchi optimum, pitch angle 35 deg, blade height 14 mm, 1 start
+    - Karaseva 30 deg helix angle most efficient (submerged / water)
+    - Thoesen granular scaling law accuracy 9-36 percent, helical version 3-9 percent on BP1
+    - Ju et al. screw rover power 5-6 W on gravel, sand, grassland
+    - Slip values reaching 40 percent
+    - The central research gap, no experimentally validated cross-terrain dynamic model
+  notes: >
+    Primary entry point for the state of the art. Its reference list is the
+    reading plan for anyone extending this package.
+
+richter2022:
+  authors: F. Richter, P. V. Gavrilov, H. M. Lam, A. Degani, M. C. Yip and co-authors
+  title: "ARCSnake: reconfigurable snakelike robot with Archimedean screw propulsion for multidomain mobility"
+  venue: IEEE Transactions on Robotics 38(2), 2022, 797-809
+  pdf: ARCSnake_Reconfigurable_Snakelike_Robot_With_Archimedean_Screw_Propulsion_for_Multidomain_Mobility.pdf
+  supplies:
+    - Reference screw geometry, drum diameter 128 mm, outer diameter 150 mm, pitch angle 22 deg, 2 starts
+    - Statement that 22 deg maximises drawbar pull and minimises slip (attributed to Cole 1961)
+    - Screw drive 1.6 N m continuous, 2.0 N m peak, screw lead speed 0.23 m/s
+    - Hard-surface failure mode, screw slippage on smooth rigid ground
+  notes: Table I of the paper did not survive text extraction; robot mass not captured.
+
+chen2025:
+  authors: D. Chen, Z. Samuels, L. Peiros, S. Mukherjee, M. C. Yip
+  title: Characterization and evaluation of screw-based locomotion across aquatic, granular and transitional media
+  venue: arXiv:2511.11958v1 (2025)
+  pdf: 2511.11958v1.pdf
+  supplies:
+    - Aspect ratio psi = tan(alpha)/(N*BH) and tip speed v_tip = omega*R*sin(alpha)
+    - Test matrix, blade height 10 and 30 mm, pitch angle 8.4 / 20.1 / 36.2 deg, 1 / 2 / 5 starts
+    - Measured linear speeds in water, dry sand, wet sand and saturated sand
+    - Blade height dominates in granular media, pitch dominates in water
+    - Lateral displacement failure mode at high pitch angle, and stall in saturated sand
+
+green2021:
+  authors: M. Green, T. McBryan, D. Mick, D. Nelson, H. Marvi
+  title: Regolith excavation performance of a screw-propelled vehicle
+  venue: Advanced Intelligent Systems, 2021 (the CASPER vehicle)
+  doi: 10.1002/aisy.202100125
+  pdf: Advanced Intelligent Systems - 2021 - Green - Regolith Excavation Performance of a Screw-Propelled Vehicle.pdf
+  supplies:
+    - CASPER, 4 screws, system mass 3.4 kg, power below 30 W, traverse 10.2 m/min, excavation 30 kg/h, cut depth 2.5 cm
+    - Velocity range 0.05-0.18 m/s and power 10-25 W over 20-40 rpm
+    - Cost of transport COT = P/(W*v) and excavation transport rate ETR = RE/(m*COT)
+    - Drive gear ratio 75:1, 12 V bus
+    - Warning that results are specific to Quikrete silica sand, 0.8-1.8 mm particles
+  notes: Screw geometry is not reported in the paper. Do not invent it.
+
+sagara2025:
+  authors: K. Sagara, D. Fujiwara, K. Iizuka
+  title: Development and evaluation of a two-dimensional extension/contraction-driven rover for sideslip suppression during slope traversal
+  venue: Aerospace 12 (2025) 699
+  pdf: aerospace-12-00699.pdf
+  supplies:
+    - Full Bekker / Wong-Reece / Janosi-Hanamoto equation set as used for sizing
+    - Screw-wheel geometry, diameter 140 mm, width 80 mm, pitch 40 mm, lead angle 4.6 deg, lug height 12.5 mm
+    - Rover mass 12.29 kg (120.5 N), 20 deg slope test
+    - Silica sand No. 5 properties, density 1290-1310 kg/m3, friction angle 22.3 deg, shear modulus 0.001-0.025 m
+    - Quantified sideslip on a slope, and the sinkage / sideslip trade-off
+  notes: >
+    The cohesion in the paper's Table 4 is printed as 761.8 N/m3, which is
+    dimensionally inconsistent with a cohesion. Treated here as roughly 762 Pa
+    and flagged. Check the original before quoting.
+
+genta2011:
+  authors: G. Genta, A. Genta
+  title: Preliminary assessment of a small robotic rover for Titan exploration
+  venue: Acta Astronautica 68 (2011) 556-566
+  pdf: 1-s2.0-S0094576510000676-main.pdf
+  supplies:
+    - Titan surface gravity 1.352 m/s2 and surface temperature about -180 C
+    - Liquid methane density 423 kg/m3 at boiling point, 0.095 m3 to float 40 kg
+    - Baseline rover total mass 40 kg with mobility subsystem about 6 kg (4 corners of 1.5 kg)
+    - SNAP-19 RTG, 42.7 We, 525 Wt, 13.6 kg; MMRTG about 110 We, 2 kWt, under 45 kg
+    - Mobility power 2.4 W on level ground, about 34 W on a 20 deg slope
+    - Max speed 100 m/h (0.028 m/s), max grade 36 percent (about 20 deg), 100 mm obstacle
+    - Earth-Titan round trip light time over 2.5 h
+    - Explicit use of lunar regolith Bekker parameters as a Titan proxy, n=1, kc=1400, k_phi=820000
+  notes: >
+    The single most useful mission-level source here. Its own caveat is the
+    important one, Titan soil parameters are unknown and the lunar numbers are
+    a substitute, not a measurement.
+
+zimmerman_postHuygens:
+  authors: W. Zimmerman, J. Lunine, R. Lorenz (JPL)
+  title: A post-Huygens Titan surface science mission design
+  venue: IEEE Aerospace Conference paper IEEEAC 1619
+  pdf: A_post-Huygens_Titan_surface_science_mission_design.pdf
+  supplies:
+    - Delivered mass chain, 5028 kg launch, 2600 kg injected, 100 kg science payload, about 30 percent margin
+    - Three sondes of 33 kg each, 15 cm diameter, 60-90 cm length
+    - 100 We / 1250 Wt radioisotope power source, 60 W peak surface system power
+    - Direct to Earth link, 22 W RF and 65 W DC, 1 kbps, 8 h per day, about 3.6 Mbyte/day
+    - Titan surface pressure 1.5 bar and surface temperature 90 K
+    - Sonde thermal jacket 20 We keeping 0-10 C for up to 7 h
+
+matthies2017:
+  authors: L. Matthies (JPL)
+  title: Titan Aerial Daughtercraft, NIAC Phase 1 final study report
+  venue: NASA/JPL, 2017, NTRS 20170001998
+  pdf: 20170001998.pdf
+  supplies:
+    - Near surface wind on Titan about 1 m/s, described as low
+    - Atmospheric density about 5 times Earth sea level, gravity about 1/7 Earth
+    - Li-ion battery specific energy 100 Wh/kg assumed for a warm-kept battery
+    - Avionics allocation 0.5 kg and 20 W, structure 20 percent of total mass
+    - Landing error ellipse 200-500 km by 50-100 km for Huygens-like unguided EDL
+  notes: >
+    The wind number matters. Near-surface winds on Titan are weak, so a paper
+    that says "strong wind" without an altitude and a load is wrong.
+
+patel2005:
+  authors: N. Patel
+  title: An investigation into optimal mobility system for planetary rovers
+  venue: PhD thesis, Surrey Space Centre, University of Surrey, 2005
+  pdf: An_investigation_into_optimal_.pdf
+  supplies:
+    - Chassis to total mass fraction K, 0.3 to 0.5 (LRV 0.308, Sojourner 0.4, MER 0.5, ExoMars 0.32-0.4)
+    - ExoMars TN4 subsystem mass breakdown, Table 37, used here for the non-mobility fractions
+    - Bekker equation set, thrust, sinkage, compaction, bulldozing, rolling and gravitational resistance
+    - Soil parameter tables for Mars sites, DLR MSS-A and MSS-B, lunar average, and terrestrial soils
+    - Design rules, wheel D/b ratio 2.2, sinkage below 0.3 D, bulldozing onset at z/d > 0.06
+    - Ground pressure limits, NGP below 75 kPa temperate, below 40 kPa compliant, tracks below 35 kPa
+    - Drivetrain efficiency chain 0.59 gearbox x 0.80 motor x 0.90 wheel, about 0.40 overall
+  notes: The richest single source for mass fractions and terramechanics in one place.
+
+ellery2005:
+  authors: A. Ellery
+  title: Environment-robot interaction, the basis for mobility in planetary micro-rovers
+  venue: Robotics and Autonomous Systems 51 (2005) 29-39
+  pdf: 1-s2.0-S0921889004002015-main.pdf
+  supplies:
+    - Science payload 5 to 15 percent of total rover mass
+    - Same Bekker formulation as Patel, with lunar values, shear modulus kappa 0.018 m
+    - Obstacle climbing capability by architecture
+
+wakabayashi2009:
+  authors: S. Wakabayashi, H. Sato, S. Nishida
+  title: Design and mobility evaluation of tracked lunar vehicle
+  venue: Journal of Terramechanics 46 (2009) 105-114
+  pdf: 1-s2.0-S0022489808000566-main.pdf
+  supplies:
+    - Lunar allowable bearing capacity 8 kPa, recommended 1.4 kPa, against about 20 kPa on Earth
+    - Optimal crawler contact pressure about 2 kg per 100 cm2, that is about 1.96 kPa
+    - Slip ratio 0.1 to 0.2 on a 20 deg slope for the crawler, against about 0.6 for a rigid wheel
+    - The tracked validation baseline this package's method is meant to be checked against
+
+mateosanguino2017:
+  authors: T. de J. Mateo Sanguino
+  title: "50 years of rovers for planetary exploration: a retrospective review"
+  venue: Robotics and Autonomous Systems 94 (2017) 172-185
+  pdf: 1-s2.0-S0921889016306030-main.pdf
+  supplies:
+    - Statistical profile of about 100 mobile robots, mass, size, wheel count, speed
+    - Planetary rover comparison table, mass and speed for 13 flown or planned rovers
+    - Battery capacity and mass per rover
+  notes: The 100-robot statistics mix terrestrial and planetary robots. Use Table 1, not the histogram, for rover priors.
+
+schilling1996:
+  authors: K. Schilling, C. Jungius
+  title: Mobile robots for planetary exploration
+  venue: Control Engineering Practice 4(4), 1996, 513-524
+  pdf: 1-s2.0-0967066196000342-main.pdf
+  supplies:
+    - Historical and design-constraint context for planetary rovers
+
+nrc_mobility:
+  authors: Committee on Planetary and Lunar Exploration, Space Studies Board, NRC
+  title: Scientific rationale for mobility in planetary environments
+  venue: National Academy Press, NTRS 20000025059
+  pdf: 20000025059.pdf
+  supplies:
+    - Science justification for surface mobility, useful for the introduction and the requirements section
+
+# --- sources behind database rows that are not in the shared PDF set ---
+
+wes_tr3641:
+  authors: US Army Waterways Experiment Station
+  title: Trafficability tests with the Marsh Screw Amphibian on coarse grained and fine grained soils
+  venue: Technical Report 3-641, Vicksburg, 1964
+  supplies:
+    - Drawbar pull up to 64 percent of vehicle weight in very soft ground
+  notes: Fill the geometry and mass fields from this report. It is the best Level A validation dataset available.
+
+tandem_tm2022:
+  title: A rideshare tensegrity rover concept to explore Titan's lands and oceans
+  venue: NASA TM-20220014544
+  url: https://ntrs.nasa.gov/api/citations/20220014544/downloads/NASA-TM-20220014544.pdf
+  supplies:
+    - Titan mission-scale mass context, 269 kg current best estimate, 344 kg predicted total, 12 kg predicted science payload
+  notes: Mission-scale comparator only. Not evidence about screw subsystem mass fractions.
+
+arps_titan_rover:
+  title: Advanced radioisotope power system enabled Titan rover concept with inflatable wheels
+  venue: NTRS 20100001596
+  supplies:
+    - Four 1.5 m inflatable wheels, about 110 We at beginning of life
+
+copperstone_helix:
+  title: Copperstone Technologies HELIX Neptune and HELIX Mercury product pages
+  url: https://copperstonetech.com/our-robots/
+  supplies:
+    - Modern four-screw vehicle masses and battery capacities
+  notes: Manufacturer data. Power figures in the database are battery energy divided by endurance, an average draw.
+
+osinski2015:
+  authors: D. Osinski, K. Szykiedans
+  title: Small remotely operated screw-propelled vehicle
+  venue: Progress in Automation, Robotics and Measuring Techniques, Springer, 2015
+  doi: 10.1007/978-3-319-15847-1_19
+  supplies:
+    - Small screw vehicle mass breakdown, drums and helices 0.6621 kg, motors 0.3992 kg

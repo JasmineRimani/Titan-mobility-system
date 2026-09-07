@@ -1,0 +1,17 @@
+part_type,manufacturer,model,rated_torque_Nm,mass_kg,source_id,notes
+motor,Maxon,RE-25,,0.130,patel2005,Mass direct from the MER actuator description. Rated torque must come from the Maxon catalogue.
+motor,Maxon,RE-20,,0.060,patel2005,Mass approximate in the source. Rated torque must come from the catalogue.
+motor,Maxon,RE-16,13.0,,patel2005,Sojourner actuator stall torque 13 N m. Motor mass not given in the source.
+actuator_assembly,JPL,MER drive actuator,43.0,,patel2005,Output torque at the wheel. RE25 plus 18.8 to 1 planetary plus 80 to 1 harmonic drive giving 1502 to 1. Assembly mass not given.
+screw_drive,Maxon,ECXSP16L + GPX16HP 35:1,1.6,,richter2022,ARCSnake screw drive continuous torque. Peak 2.0 N m. Mass not recoverable from the paper.
+gearmotor,Pololu,4846 75:1,,,green2021,CASPER screw drive gear motor. Torque and mass not given in the paper.
+motor,SYNTHETIC,demo-1,0.5,0.09,SYNTHETIC_DEMO,Delete once real catalogue rows are entered.
+motor,SYNTHETIC,demo-2,2.0,0.28,SYNTHETIC_DEMO,Delete once real catalogue rows are entered.
+motor,SYNTHETIC,demo-3,8.0,0.95,SYNTHETIC_DEMO,Delete once real catalogue rows are entered.
+motor,SYNTHETIC,demo-4,30.0,3.10,SYNTHETIC_DEMO,Delete once real catalogue rows are entered.
+motor,SYNTHETIC,demo-5,120.0,10.4,SYNTHETIC_DEMO,Delete once real catalogue rows are entered.
+gearbox,SYNTHETIC,demo-1,5.0,0.22,SYNTHETIC_DEMO,Delete once real catalogue rows are entered.
+gearbox,SYNTHETIC,demo-2,20.0,0.75,SYNTHETIC_DEMO,Delete once real catalogue rows are entered.
+gearbox,SYNTHETIC,demo-3,80.0,2.60,SYNTHETIC_DEMO,Delete once real catalogue rows are entered.
+gearbox,SYNTHETIC,demo-4,300.0,8.90,SYNTHETIC_DEMO,Delete once real catalogue rows are entered.
+gearbox,SYNTHETIC,demo-5,1000.0,27.0,SYNTHETIC_DEMO,Delete once real catalogue rows are entered.

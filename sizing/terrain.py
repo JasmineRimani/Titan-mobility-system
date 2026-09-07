@@ -1,0 +1,113 @@
+"""Terrain cases.
+
+A terrain case is a parameter set with a source, not a label. Cases whose
+Bekker parameters are unavailable cannot be used for sinkage, and the code
+says so instead of substituting a guess.
+
+Bekker parameter units follow Wong: k_c in N/m^(n+1), k_phi in N/m^(n+2).
+"""
+
+from dataclasses import dataclass
+from typing import Optional
+
+
+@dataclass(frozen=True)
+class Terrain:
+    name: str
+    k_c: Optional[float]        # N/m^(n+1)
+    k_phi: Optional[float]      # N/m^(n+2)
+    n: Optional[float]
+    cohesion: float             # Pa
+    phi: float                  # deg
+    shear_K: float              # m
+    density: Optional[float]    # kg/m^3
+    mu_db_max: Optional[float]  # measured max drawbar pull / weight
+    source: str
+    evidence: str
+
+    @property
+    def has_bekker(self) -> bool:
+        return None not in (self.k_c, self.k_phi, self.n)
+
+
+# --- terrestrial soils, Patel thesis Table 9, citing Wong (2001) -----------
+# NOTE: Wong's own printed dry-sand set is often quoted as n = 1.1,
+# k_c = 0.99 kN/m^(n+1), k_phi = 1528 kN/m^(n+2). Patel's table gives n = 1
+# and k_phi = 1.52e5. The two differ by an order of magnitude in k_phi.
+# The Patel values are used here because that is the source in hand.
+# Check against Wong's book before quoting either in a paper.
+DRY_SAND = Terrain(
+    "dry_sand", 990.0, 1.52e5, 1.0, 1040.0, 28.0, 0.025, 1520.0, None,
+    "patel2005 Table 9 (Wong 2001)", "direct",
+)
+SANDY_LOAM = Terrain(
+    "sandy_loam", 5270.0, 1.51e6, 1.0, 1720.0, 29.0, 0.025, 1520.0, None,
+    "patel2005 Table 9 (Wong 2001)", "direct",
+)
+CLAYEY_SOIL = Terrain(
+    "clayey_soil", 13190.0, 6.92e6, 1.0, 4140.0, 13.0, 0.025, 1520.0, None,
+    "patel2005 Table 9 (Wong 2001)", "direct",
+)
+
+# --- lunar, Patel thesis Table 6 (Carrier et al. 1991) ---------------------
+LUNAR_AVERAGE = Terrain(
+    "lunar_average", 1350.0, 8.2e5, 1.0, 520.0, 42.0, 0.018, 1500.0, None,
+    "patel2005 Table 6 (Carrier 1991); shear_K from ellery2005", "direct",
+)
+
+# --- Titan, and the honest state of it ------------------------------------
+# There is no measured Bekker parameter set for Titan. genta2011 sizes its
+# Titan rover with lunar regolith parameters and says so explicitly. This
+# case reproduces that choice, with the caveat attached, so that any result
+# computed on it is visibly a proxy result.
+TITAN_LUNAR_PROXY = Terrain(
+    "titan_lunar_proxy", 1400.0, 8.2e5, 1.0, 520.0, 42.0, 0.018, 1500.0, None,
+    "genta2011 (lunar regolith used as a Titan substitute)",
+    "PROXY, not a Titan measurement. Largest single uncertainty in any Titan "
+    "mobility sizing.",
+)
+
+# --- Mars simulants, Patel thesis Table 4 (DLR, Richter and Hamacher 1999) -
+MSS_A = Terrain(
+    "mss_a", 2370.0, 60300.0, 0.63, 188.0, 24.8, 0.025, 1137.0, None,
+    "patel2005 Table 4 (DLR MSS-A)", "direct",
+)
+MSS_B = Terrain(
+    "mss_b", 18773.0, 763600.0, 1.1, 441.0, 17.8, 0.025, 1137.0, None,
+    "patel2005 Table 4 (DLR MSS-B)", "direct",
+)
+
+# --- test sand used in a screw-wheel slope experiment ----------------------
+# Bekker parameters are NOT reported, so sinkage cannot be computed on this
+# case. It is still usable for shear, slip and the sideslip comparison.
+# The paper prints cohesion as 761.8 N/m^3, which is dimensionally wrong for
+# a cohesion; 762 Pa is used here and flagged.
+SILICA_SAND_N5 = Terrain(
+    "silica_sand_no5", None, None, None, 762.0, 22.3, 0.013, 1300.0, None,
+    "sagara2025 Table 4", "cohesion unit inconsistent in source; Bekker "
+    "parameters unavailable",
+)
+
+# --- screw-specific drawbar evidence --------------------------------------
+# These two cases exist to carry the only measured screw drawbar coefficients
+# in the literature we have. Their Bekker parameters are assumed, because the
+# reports give trafficability, not pressure-sinkage constants.
+SNOW_MSA = Terrain(
+    "snow_msa", 500.0, 4.0e5, 1.0, 500.0, 22.0, 0.03, 400.0, 0.54,
+    "villacres2023 (MSA 1/5 scale, drawbar 54 percent of body weight in snow)",
+    "mu_db_max direct; Bekker parameters ASSUMED",
+)
+LIQUEFIED_SOFT = Terrain(
+    "liquefied_soft", 100.0, 4.0e4, 0.8, 200.0, 10.0, 0.05, 1200.0, 0.64,
+    "wes_tr3641 (drawbar pull up to 64 percent of vehicle weight)",
+    "mu_db_max direct; Bekker parameters ASSUMED",
+)
+
+CASES = {t.name: t for t in (
+    DRY_SAND, SANDY_LOAM, CLAYEY_SOIL, LUNAR_AVERAGE, TITAN_LUNAR_PROXY,
+    MSS_A, MSS_B, SILICA_SAND_N5, SNOW_MSA, LIQUEFIED_SOFT,
+)}
+
+
+class TerrainDataMissing(Exception):
+    """Raised when a terrain case lacks the parameters a model needs."""
