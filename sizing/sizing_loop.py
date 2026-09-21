@@ -20,9 +20,10 @@ from .mers import (MassModel, DRIVETRAIN_FRACTION_RANGE, drive_module_mass,
                    eps_mass, required_motor_torque, running_gear_mass)
 from .screw import (ScrewGeometry, bulldozing_flag, check_validity,
                     compaction_resistance, contact_width, cost_of_transport,
-                    drawbar_available, kinematics, obstacle_capability,
-                    radius_to_sinkage, rolling_resistance, sinkage,
-                    torque_and_power, traction_limited_slope)
+                    displaced_volume, drawbar_available, flotation_vol,
+                    kinematics, obstacle_capability, radius_to_sinkage,
+                    rolling_resistance, sinkage, torque_and_power,
+                    traction_limited_slope)
 from .terrain import Terrain, TITAN_LUNAR_PROXY
 
 
@@ -187,8 +188,14 @@ def size(mission: Mission,
         notes.append(f"terrain '{terrain.name}' is a proxy, not a measurement: "
                      f"{terrain.evidence}")
 
-    screw_vol=2*(geom.length*math.pi*pow(geom.drum_diameter,2)/4)
-    screw_vol_req=weight/env.liquid_density
+    # Flotation screen. Titan's lakes and its wet shorelines are a credible
+    # place for this vehicle to end up, so the loop reports the volume the
+    # drums displace against the volume it would take to float the converged
+    # mass. Both m^3. The requirement is set by MASS, not weight: gravity
+    # cancels out of Archimedes. See displaced_volume and flotation_vol for
+    # what is counted and what is not.
+    screw_vol = displaced_volume(geom)
+    screw_vol_req = flotation_vol(env, m_total)
 
     masses = {
         "payload": mission.payload_mass,
@@ -246,7 +253,8 @@ def size(mission: Mission,
         "mobility_mass_fraction": m_mobility / m_total,
         "overturning_margin": overturn,
         "screw_vol": screw_vol,
-	"screw_vol_req": screw_vol_req,
+        "screw_vol_req": screw_vol_req,
+        "flotation_margin": screw_vol / screw_vol_req if screw_vol_req > 0 else float("inf"),
     }
     checks = {
         "mass_within_delivered_cap": m_total <= mission.delivered_mass_cap,
@@ -255,12 +263,8 @@ def size(mission: Mission,
         "overturning_margin_ge_2": overturn >= 2.0,
         "mobility_fraction_plausible": 0.15 <= m_mobility / m_total <= 0.60,
         "obstacle_requirement_met": obstacle_capability(geom) >= mission.max_obstacle,
-	"floats_in_methane": screw_vol>=screw_vol_req,
+        "floats_in_methane": screw_vol >= screw_vol_req,
     }
-
-#    print("Available volume=",screw_vol," m3")
-#    print("Required volume=",screw_req," m3")
-
-    return Result(converged, it, m_total, masses, powers, performance, checks, notes,)
+    return Result(converged, it, m_total, masses, powers, performance, checks, notes)
 
    

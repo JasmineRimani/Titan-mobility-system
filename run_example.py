@@ -11,6 +11,7 @@ import csv
 import dataclasses
 import math
 import os
+
 import numpy
 
 from sizing.environment import EARTH, MOON, TITAN
@@ -358,10 +359,13 @@ def main():
               f"{r.performance['contact_pressure_kPa']:9.2f} "
               f"{r.powers['drive_electrical']:9.1f} "
               f"{r.performance['drawbar_margin']:8.2f} {str(r.feasible):>9s}")
+    print()
 
-
-    payloads = numpy.arange(5,50,5) ##[5, 10, 12, 15, 20, 25, 30, 40]
-    diameters = numpy.arange(0.1,1,0.2) ##[0.40, 0.50, 0.60, 0.70, 0.80]
+    # Wide sweep, with the two baseline diameters (0.40 and 0.60 m) spliced
+    # back in. numpy.arange steps straight over both of them, which would
+    # leave the reference design missing from its own trade space.
+    payloads = numpy.arange(5, 50, 5)
+    diameters = numpy.union1d(numpy.arange(0.1, 1.0, 0.2), [0.40, 0.60])
     rows = []
     for d in diameters:
         for pl in payloads:
@@ -369,7 +373,7 @@ def main():
             g = ScrewGeometry(drum_diameter=d, length=2.0 * d, pitch=0.75 * d)
             r = size(m, g, terrain, TITAN, MassModel())
             rows.append({
-                "drum_diameter_m": d, "payload_kg": pl,
+                "drum_diameter_m": round(float(d), 3), "payload_kg": int(pl),
                 "total_mass_kg": round(r.total_mass, 2),
                 "mobility_fraction": round(r.performance["mobility_mass_fraction"], 3),
                 "sinkage_ratio": round(r.performance["sinkage_ratio"], 4),
@@ -377,8 +381,11 @@ def main():
                 "drive_power_W": round(r.powers["drive_electrical"], 1),
                 "drawbar_margin": round(r.performance["drawbar_margin"], 2),
                 "cost_of_transport": round(r.performance["cost_of_transport"], 2),
-                "feasible": r.feasible, "floats_in_methane":r.checks["floats_in_methane"],
-		"screw_vol, m3": round(r.performance["screw_vol"],3),"screw_vol_req, m3": round(r.performance["screw_vol_req"],3),
+                "feasible": r.feasible,
+                "floats_in_methane": r.checks["floats_in_methane"],
+                "screw_displaced_vol_m3": round(r.performance["screw_vol"], 3),
+                "flotation_vol_required_m3": round(r.performance["screw_vol_req"], 3),
+                "flotation_margin": round(r.performance["flotation_margin"], 2),
             })
     with open(os.path.join(OUT, "trade_space.csv"), "w", newline="") as f:
         w = csv.DictWriter(f, fieldnames=list(rows[0].keys()))

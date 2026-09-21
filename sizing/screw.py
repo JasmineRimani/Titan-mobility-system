@@ -27,8 +27,10 @@ The code flags this rather than extrapolating quietly.
 
 NOT MODELLED, and to be stated as limitations: lateral drift and side slip
 (observed in chen2025 and sagara2025), the switch to wheel-like rolling on
-hard ground (richter2022), buoyancy and hydrodynamic drag, dynamic sinkage,
-multi-pass effects, and the interaction between multiple screws.
+hard ground (richter2022), hydrodynamic drag and thrust in liquid, dynamic
+sinkage, multi-pass effects, and the interaction between multiple screws.
+Static buoyancy IS screened, conservatively, by displaced_volume and
+flotation_vol below; nothing else about a liquid crossing is.
 """
 
 import math
@@ -237,14 +239,40 @@ def obstacle_capability(geom: ScrewGeometry, alpha: float = 0.5) -> float:
     """
     return alpha * geom.outer_diameter
 
-def flotation_vol(env,weight: float) -> float:
-    """volume required to float"""
-    return weight/env.liquid_density
+
+def displaced_volume(geom: ScrewGeometry) -> float:
+    """Volume displaced by the screw drums when fully submerged, m^3.
+
+        V = n_screws * (pi / 4) * D_drum^2 * L
+
+    Drum cylinders only. The helical blades displace a little more, and any
+    hull carried above the drums displaces a great deal more, so this is a
+    deliberately conservative floor on buoyancy rather than an estimate of
+    it. Treat a design that passes on drum volume alone as safe, and one
+    that fails as undecided rather than sunk.
+
+    NOT VALIDATED. No Titan amphibian exists to check this against, and the
+    terrestrial screw amphibians in the database (MSA, ZIL-2906) float on
+    sealed drums whose internal volume is not recorded here.
+    """
+    return geom.n_screws * math.pi * geom.drum_diameter ** 2 / 4.0 * geom.length
 
 
+def flotation_vol(env, mass: float) -> float:
+    """Displaced volume needed to float a vehicle of the given mass, m^3.
 
+    Archimedes: rho_liquid * V * g = m * g, so V = m / rho_liquid. Gravity
+    cancels, so the requirement is the same on Titan as it would be on Earth
+    for the same liquid. Takes a MASS in kg, not a weight in newtons.
 
+    Returns infinity on a body with no surface liquid, so a flotation
+    requirement is never satisfied by accident on a dry world.
 
-
-
-
+    Static flotation only. Freeboard, trim, stability in waves and the
+    hydrodynamic drag of a screw driving itself through liquid are all
+    outside this, and all of them matter before anyone claims the vehicle
+    is amphibious.
+    """
+    if env.liquid_density <= 0.0:
+        return float("inf")
+    return mass / env.liquid_density

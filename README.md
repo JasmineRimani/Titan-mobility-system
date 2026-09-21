@@ -132,10 +132,23 @@ the design.
 **Feasibility checks now applied.** Mass within the delivered cap, radius to
 sinkage at least 6 (rimani_week4_mobility, replacing the looser z below 0.3 D
 rule), thrust available against thrust required, overturning margin at least
-2, mobility fraction between 0.15 and 0.60, and obstacle capability against
-the 100 mm requirement using h_max about 0.5 D. The last one is an analogy
-from wheels, and whether a screw drum climbs like a wheel of the same diameter
-is not established anywhere in `sources.yaml`.
+2, mobility fraction between 0.15 and 0.60, obstacle capability against
+the 100 mm requirement using h_max about 0.5 D, and static flotation in
+liquid methane. The obstacle one is an analogy from wheels, and whether a
+screw drum climbs like a wheel of the same diameter is not established
+anywhere in `sources.yaml`.
+
+**Flotation.** The volume displaced by the drums is compared against
+`m_total / rho_liquid`, with rho_liquid = 423 kg/m3 for liquid methane
+(genta2011). Gravity cancels out of Archimedes, so the requirement is a
+mass, not a weight, and the number is the same as it would be on Earth for
+the same liquid. Only the drum cylinders are counted, not the blades and
+not any hull above them, which makes the screen a conservative floor on
+buoyancy: passing means the vehicle floats on drums alone, failing means
+the question is open rather than settled. Freeboard, trim, stability in
+waves and the drag of driving a screw through liquid are all outside it,
+and all of them matter before anyone calls this vehicle amphibious. The
+baseline clears the screen with about 20 percent margin.
 
 **Validity, stated plainly.** villacres2023 is explicit that Bekker-derived
 scroll models hold only while sinkage stays below the flight height, that is
@@ -146,8 +159,9 @@ extrapolating quietly.
 
 **Not modelled.** Lateral drift and side slip, which chen2025 and sagara2025
 both measure and which is a known screw weakness. The switch to wheel-like
-rolling on hard ground, which richter2022 calls screw slippage. Buoyancy and
-hydrodynamic drag, so a liquid crossing is out of scope. Dynamic sinkage,
+rolling on hard ground, which richter2022 calls screw slippage. Everything
+about a liquid crossing beyond the static flotation screen above, in
+particular hydrodynamic drag, thrust in liquid and stability. Dynamic sinkage,
 multi-pass effects, bulldozing resistance, and the interaction between
 multiple screws. State these as limitations in any paper.
 
