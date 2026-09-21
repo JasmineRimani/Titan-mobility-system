@@ -187,6 +187,9 @@ def size(mission: Mission,
         notes.append(f"terrain '{terrain.name}' is a proxy, not a measurement: "
                      f"{terrain.evidence}")
 
+    screw_vol=2*(geom.length*math.pi*pow(geom.drum_diameter,2)/4)
+    screw_vol_req=weight/env.liquid_density
+
     masses = {
         "payload": mission.payload_mass,
         "mobility_running_gear": m_running,
@@ -242,6 +245,8 @@ def size(mission: Mission,
                                                mission.target_speed),
         "mobility_mass_fraction": m_mobility / m_total,
         "overturning_margin": overturn,
+        "screw_vol": screw_vol,
+	"screw_vol_req": screw_vol_req,
     }
     checks = {
         "mass_within_delivered_cap": m_total <= mission.delivered_mass_cap,
@@ -250,5 +255,12 @@ def size(mission: Mission,
         "overturning_margin_ge_2": overturn >= 2.0,
         "mobility_fraction_plausible": 0.15 <= m_mobility / m_total <= 0.60,
         "obstacle_requirement_met": obstacle_capability(geom) >= mission.max_obstacle,
+	"floats_in_methane": screw_vol>=screw_vol_req,
     }
-    return Result(converged, it, m_total, masses, powers, performance, checks, notes)
+
+#    print("Available volume=",screw_vol," m3")
+#    print("Required volume=",screw_req," m3")
+
+    return Result(converged, it, m_total, masses, powers, performance, checks, notes,)
+
+   

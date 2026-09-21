@@ -236,3 +236,15 @@ def obstacle_capability(geom: ScrewGeometry, alpha: float = 0.5) -> float:
     an analogy that needs testing, not a result.
     """
     return alpha * geom.outer_diameter
+
+def flotation_vol(env,weight: float) -> float:
+    """volume required to float"""
+    return weight/env.liquid_density
+
+
+
+
+
+
+
+
