@@ -1,3 +1,10 @@
 outputs/
 __pycache__/
 *.pyc
+Claude/*
+Claude outputs/*
+_to_delete/*
+matlab/*
+paper/*
+*.tex
+*.pdf

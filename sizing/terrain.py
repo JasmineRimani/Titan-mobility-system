@@ -111,25 +111,62 @@ SILICA_SAND_N5 = Terrain(
 )
 
 # --- screw-specific drawbar evidence --------------------------------------
-# These two cases exist to carry the only measured screw drawbar coefficients
-# in the literature we have. Their Bekker parameters are assumed, because the
-# reports give trafficability, not pressure-sinkage constants.
+# These cases exist to carry the only measured screw drawbar coefficients in
+# the literature we have. Their Bekker parameters are assumed (or borrowed
+# from Wong's dry sand), because the trafficability reports give cone index,
+# not pressure-sinkage constants.
+#
+# CORRECTION (September 2026). An earlier version carried mu_db_max = 0.64
+# attributed to wes_tr3641 "in very soft ground". That figure could not be
+# found in the report (DTIC AD0450621). The report gives, for the loaded
+# vehicle (3954 lb):
+#   - sand, CI about 75 to 95:   "tow loads up to about 24% of its test
+#     weight", measured at full throttle and about 0.5 mph (p. 20-21);
+#     the loaded vehicle climbed an 18 deg sand slope and failed at 21 deg
+#     (Table 1C, p. 20), which bounds the usable traction coefficient
+#     between 0.24 and about tan(18 deg) + c_rr = 0.32 + 0.08 = 0.40.
+#   - fine-grained soil (fat clay CH, free water), RCI 20 to 30: maximum
+#     towing force 425 lb at about 28 percent slip, then falling
+#     (Table 2B, p. 42-43), which is 425 / 3954 = 0.107 of test weight.
+# The 0.64 was most probably a misreading of test number 64D. Both values
+# below are the report's, with page references, and both are far lower
+# than the Mohr-Coulomb ceiling for the same soils. That gap is the
+# screw traction efficiency that validate.py calibrates.
 SNOW_MSA = Terrain(
     "snow_msa", 500.0, 4.0e5, 1.0, 500.0, 22.0, 0.03, 400.0, 0.54,
     "villacres2023 (MSA 1/5 scale, drawbar 54 percent of body weight in snow)",
     "mu_db_max direct; Bekker parameters ASSUMED",
     c_rr=0.15, c_rr_source="ASSUMED, no snow row in the c_rr table",
 )
+# Sand on which the full-scale MSA was tested. Bekker set is Wong's dry sand
+# as tabulated by patel2005 (see the k_phi caveat above). The drawbar cap is
+# the measured towing figure; the slope tests imply a somewhat higher value.
+MSA_SAND_WES = Terrain(
+    "msa_sand_wes", 990.0, 1.52e5, 1.0, 1040.0, 28.0, 0.025, 1520.0, 0.24,
+    "wes_tr3641 (MSA loaded on sand: towing force about 24 percent of test "
+    "weight, p. 21; climbed 18 deg, not 21 deg, Table 1C p. 20). Bekker set "
+    "patel2005 Table 9 dry sand",
+    "mu_db_max direct (towing); Bekker parameters from a generic dry sand, "
+    "NOT the WES test sand",
+    c_rr=0.075, c_rr_source="rimani_week4_mobility, sandy soil 0.05 to 0.10",
+)
+# Fine-grained soil with free water, the regime where the MSA beat the M29C
+# Weasel. Bekker parameters ASSUMED; the report gives rating cone index only.
 LIQUEFIED_SOFT = Terrain(
-    "liquefied_soft", 100.0, 4.0e4, 0.8, 200.0, 10.0, 0.05, 1200.0, 0.64,
-    "wes_tr3641 (drawbar pull up to 64 percent of vehicle weight)",
-    "mu_db_max direct; Bekker parameters ASSUMED",
-    c_rr=0.25, c_rr_source="ASSUMED, top of the very loose range",
+    "liquefied_soft", 100.0, 4.0e4, 0.8, 200.0, 10.0, 0.05, 1200.0, 0.107,
+    "wes_tr3641 (MSA loaded on fat clay with free water, RCI 20 to 30: "
+    "425 lb maximum towing force at about 28 percent slip, Table 2B "
+    "p. 42-43, over a 3954 lb test weight)",
+    "mu_db_max calculated from the report's towing force and test weight; "
+    "Bekker parameters ASSUMED",
+    c_rr=0.05, c_rr_source="ASSUMED; the report stresses that free water and "
+    "low soil-rotor friction are what let the MSA move on this ground, and "
+    "it reached 5 mph on it, so a low value is used",
 )
 
 CASES = {t.name: t for t in (
     DRY_SAND, SANDY_LOAM, CLAYEY_SOIL, LUNAR_AVERAGE, TITAN_LUNAR_PROXY,
-    MSS_A, MSS_B, SILICA_SAND_N5, SNOW_MSA, LIQUEFIED_SOFT,
+    MSS_A, MSS_B, SILICA_SAND_N5, SNOW_MSA, MSA_SAND_WES, LIQUEFIED_SOFT,
 )}
 
 

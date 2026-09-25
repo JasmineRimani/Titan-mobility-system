@@ -77,7 +77,7 @@ package. Entries marked **to obtain** are not, and are worth chasing.
   trafficability reports, TR 3-641 and companions.**
   *to obtain* (`wes_tr3641`)
   The only source with documented test conditions and a measured drawbar
-  coefficient, 0.64 of vehicle weight in very soft ground. The single highest
+  coefficients, 0.24 of test weight on sand and 0.107 on wet clay (the 0.64 quoted earlier is not in the report). The single highest
   value item on the reading list for filling the database.
   https://apps.dtic.mil/sti/pdfs/AD0646274.pdf and
   https://apps.dtic.mil/sti/pdfs/AD0694057.pdf

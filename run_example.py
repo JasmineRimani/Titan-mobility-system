@@ -140,17 +140,12 @@ def gravity_study(geom, terrain, m_fixed=200.0):
         pc = load / (b * geom.length) / 1000.0
 
         have = geom.n_screws * drawbar_available(load, 0.30, geom, terrain)
-        rc = geom.n_screws * compaction_resistance(z, geom, terrain)
+        # same resistance convention as the loop: the larger of Bekker
+        # compaction and the empirical c_rr lump
+        rc = max(geom.n_screws * compaction_resistance(z, geom, terrain),
+                 terrain.c_rr * w)
         mu_avail = have / w
-        lo, hi = 0.0, 85.0
-        for _ in range(80):
-            mid = 0.5 * (lo + hi)
-            if have >= w * math.sin(math.radians(mid)) + rc:
-                lo = mid
-            else:
-                hi = mid
-        slope = 0.5 * (lo + hi)
-        cap = " (capped)" if slope > 84.0 else ""
+        slope, cap = max_slope_deg(have, w, rc)
         print(f"{env.name:8s} {env.gravity:6.2f} {w:9.1f} {z*1000:8.2f} "
               f"{z/geom.outer_diameter:7.3f} {pc:8.2f} {mu_avail:9.3f} "
               f"{slope:10.1f}{cap}")
@@ -168,9 +163,25 @@ def gravity_study(geom, terrain, m_fixed=200.0):
     if terrain.mu_db_max is None:
         print("This terrain has no measured drawbar cap, so mu_avail comes")
         print("from the Mohr-Coulomb ceiling alone and the slope search can")
-        print("saturate. The liquefied_soft case below carries the measured")
-        print("cap of 0.64 from the Marsh Screw Amphibian trials.")
+        print("saturate. Cases with a measured cap (mu_db_max) do not move")
+        print("with gravity, because the cap scales with weight.")
     print()
+
+
+def max_slope_deg(f_available, weight, resistance):
+    """Largest slope the vehicle holds with the loop's own force balance.
+
+    F_av >= W sin(theta) + R, with F_av independent of slope because the
+    loop keeps the level-ground normal load (Section 4.3.2 of the paper).
+    Returns (degrees, cap_flag); capped at 85 deg when the balance never
+    fails, which is the sign of an unmeasured cohesion doing the work.
+    """
+    x = (f_available - resistance) / max(weight, 1e-9)
+    if x >= 1.0:
+        return 85.0, " (capped)"
+    if x <= 0.0:
+        return 0.0, ""
+    return math.degrees(math.asin(x)), ""
 
 
 
@@ -262,6 +273,45 @@ def sensitivity(mission, geom, terrain, env, base):
 
 
 
+def traction_calibration(mission, geom, terrain, env):
+    """Carry the MSA-calibrated screw traction efficiency into the Titan case.
+
+    validate.py Level A finds that the Marsh Screw Amphibian mobilised about
+    0.35 (towing) to 0.65 (slope tests) of the Mohr-Coulomb ceiling on sand.
+    The uncorrected model (kappa = 1) is therefore optimistic on granular
+    ground. This block reports the Titan drawbar margin, equilibrium slip
+    and traction-limited slope across that range.
+    """
+    print("=" * 66)
+    print("TRACTION CALIBRATION FROM THE MARSH SCREW AMPHIBIAN, CARRIED TO TITAN")
+    print("=" * 66)
+    print(f"{'kappa':>6s} {'basis':30s} {'margin':>7s} {'s_eq':>7s} {'slope_max':>10s} {'thrust ok':>10s}")
+    for kappa, basis in ((1.0, "uncorrected model"),
+                         (0.65, "MSA slope tests [wes_tr3641]"),
+                         (0.35, "MSA towing test [wes_tr3641]")):
+        g = dataclasses.replace(geom, traction_efficiency=kappa)
+        r = size(mission, g, terrain, env, MassModel())
+        s_eq = r.performance["equilibrium_slip"]
+        s_txt = "limited" if s_eq < 0 else f"{s_eq:7.3f}"
+        # largest slope with the loop's own force balance, net of the
+        # motion resistance and aerodynamic drag it uses
+        w = r.total_mass * env.gravity
+        slope, cap = max_slope_deg(r.performance["thrust_available_N"], w,
+                                   r.performance["resistance_used_N"]
+                                   + r.performance["aero_drag_N"])
+        print(f"{kappa:6.2f} {basis:30s} {r.performance['drawbar_margin']:7.2f} "
+              f"{s_txt:>7s} {slope:9.1f}d{cap:9s} {str(r.checks['thrust_available']):>10s}")
+    print()
+    print("Read: with the uncorrected ceiling the 20 deg design slope carries a")
+    print("comfortable margin. With the traction efficiency the MSA actually")
+    print("achieved on sand, the margin on the lunar-proxy soil drops to about")
+    print("one, and at the towing-test value the vehicle is traction limited on")
+    print("the design slope. The slope requirement, not flotation and not mass,")
+    print("is where the terrain uncertainty bites. Mass does not move because")
+    print("thrust is sized from the requirement, not from the ceiling.")
+    print()
+
+
 def closure_limit(mission, geom, terrain, env):
     """Heaviest drum shell the design can carry and still close.
 
@@ -295,8 +345,10 @@ def running_gear_requirement(mission, geom, terrain, env, mm):
     print("=" * 66)
     limit = closure_limit(mission, geom, terrain, env)
     alo, ahi = AREAL_DENSITY_RANGE
-    print(f"delivered mass cap                    {mission.delivered_mass_cap:6.0f} kg"
-          f"   [tandem_tm2022]")
+    print(f"lander-only mass benchmark            {mission.delivered_mass_cap:6.0f} kg"
+          f"   [tandem_tm2022, growth-predicted lander]")
+    print(f"lander plus aeroshell, for reference  {mission.system_mass_cap:6.0f} kg"
+          f"   [tandem_tm2022, predicted total]")
     print(f"assumed drum areal density            {mm.drum_areal_density:6.1f} kg/m2  CHOICE")
     if limit is None:
         print("The design does not close at any drum areal density.")
@@ -331,6 +383,7 @@ def main():
     gravity_study(geom, LIQUEFIED_SOFT, m_fixed=res.total_mass)
     running_gear_requirement(mission, geom, terrain, TITAN, MassModel())
     sensitivity(mission, geom, terrain, TITAN, res.total_mass)
+    traction_calibration(mission, geom, terrain, TITAN)
 
     with open(os.path.join(OUT, "baseline_breakdown.csv"), "w", newline="") as f:
         w = csv.writer(f)
@@ -348,17 +401,19 @@ def main():
     print("TERRAIN SENSITIVITY, same geometry and mission")
     print("=" * 66)
     print(f"{'terrain':20s} {'m_total':>9s} {'z/D':>7s} {'p_c kPa':>9s} "
-          f"{'P_drive':>9s} {'margin':>8s} {'feasible':>9s}")
+          f"{'P_drive':>9s} {'margin':>8s} {'s_eq':>7s} {'feasible':>9s}")
     for name, t in CASES.items():
         if not t.has_bekker:
             print(f"{name:20s} {'-':>9s} {'-':>7s} {'-':>9s} {'-':>9s} {'-':>8s} "
-                  f"{'no Bekker data':>9s}")
+                  f"{'-':>7s} {'no Bekker data':>9s}")
             continue
         r = size(mission, geom, t, TITAN, MassModel())
         print(f"{name:20s} {r.total_mass:9.1f} {r.performance['sinkage_ratio']:7.3f} "
               f"{r.performance['contact_pressure_kPa']:9.2f} "
               f"{r.powers['drive_electrical']:9.1f} "
-              f"{r.performance['drawbar_margin']:8.2f} {str(r.feasible):>9s}")
+              f"{r.performance['drawbar_margin']:8.2f} "
+              f"{('limited' if r.performance['equilibrium_slip'] < 0 else format(r.performance['equilibrium_slip'], '7.3f')):>7s} "
+              f"{str(r.feasible):>9s}")
     print()
 
     # Wide sweep, with the two baseline diameters (0.40 and 0.60 m) spliced
@@ -370,7 +425,12 @@ def main():
     for d in diameters:
         for pl in payloads:
             m = Mission(payload_mass=pl)
-            g = ScrewGeometry(drum_diameter=d, length=2.0 * d, pitch=0.75 * d)
+            # baseline proportions scaled to d, so the sweep passes through
+            # the baseline design (same rule as make_figures.py)
+            g0 = ScrewGeometry()
+            k = d / g0.drum_diameter
+            g = dataclasses.replace(g0, drum_diameter=d, blade_height=g0.blade_height * k,
+                                    length=g0.length * k, pitch=g0.pitch * k)
             r = size(m, g, terrain, TITAN, MassModel())
             rows.append({
                 "drum_diameter_m": round(float(d), 3), "payload_kg": int(pl),
@@ -406,16 +466,17 @@ def main():
             bad = [r for r in sub if not r["feasible"]]
             ax.plot([r["payload_kg"] for r in bad], [r["total_mass_kg"] for r in bad],
                     linestyle="none", marker="x", ms=9, color="0.2")
-        cap = Mission().delivered_mass_cap
-        ax.axhline(cap, color="0.4", linestyle="--", lw=1)
-        ax.annotate(f"delivered mass cap {cap:.0f} kg [tandem_tm2022]",
-                    (payloads[0], cap), textcoords="offset points",
-                    xytext=(2, 4), fontsize=8, color="0.35")
+        for cap, label, ls in ((Mission().delivered_mass_cap, "lander-only benchmark", "--"),
+                               (Mission().system_mass_cap, "lander plus aeroshell", ":")):
+            ax.axhline(cap, color="0.4", linestyle=ls, lw=1,
+                       label=f"{label}, {cap:.0f} kg [tandem_tm2022]")
+        ax.plot([], [], linestyle="none", marker="x", ms=9, color="0.2",
+                label="fails at least one screen")
         ax.set_xlabel("science payload mass [kg]")
         ax.set_ylabel("converged total mass [kg]")
-        ax.set_title("Titan screw rover, lunar-proxy terrain\n"
-                     "crosses mark infeasible points", fontsize=10)
-        ax.legend(fontsize=8, frameon=False)
+        # no text inside the plot area: everything is in the legend
+        ax.legend(fontsize=8, frameon=False, loc="upper left",
+                  bbox_to_anchor=(1.01, 1.0))
         ax.grid(alpha=0.25, lw=0.6)
         fig.tight_layout()
         fig.savefig(os.path.join(OUT, "trade_space.png"), dpi=160)

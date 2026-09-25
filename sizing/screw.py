@@ -42,13 +42,24 @@ from .terrain import TerrainDataMissing
 
 @dataclass
 class ScrewGeometry:
+    # Baseline geometry (September 2026). Re-baselined from 0.60 / 0.10 /
+    # 1.20 / 0.45 when the mass screen moved to the lander-only 213 kg
+    # benchmark: this is the smallest geometry in the trade space that
+    # passes every screen, including drum-only flotation, on the Titan
+    # lunar-proxy soil. See outputs/trade_space.csv and README section 10.
     n_screws: int = 2
-    drum_diameter: float = 0.60      # m, D_drum
-    blade_height: float = 0.10       # m, BH
-    length: float = 1.20             # m, L
+    drum_diameter: float = 0.55      # m, D_drum
+    blade_height: float = 0.08       # m, BH
+    length: float = 1.10             # m, L
     pitch: float = 0.45              # m, p, axial advance per revolution
     n_starts: int = 1
     soil_metal_friction: float = 0.6  # ASSUMED, calibrate against a test
+    # Fraction of the Mohr-Coulomb ceiling a rotating screw actually
+    # converts into drawbar pull. 1.0 reproduces the uncorrected model.
+    # validate.py calibrates it on the Marsh Screw Amphibian sand tests
+    # (wes_tr3641): about 0.35 from the towing tests, about 0.65 from the
+    # slope tests. Keep 1.0 for the uncorrected result and report both.
+    traction_efficiency: float = 1.0
 
     @property
     def outer_diameter(self) -> float:
@@ -172,16 +183,51 @@ def drawbar_available(load_per_screw: float, slip: float, geom: ScrewGeometry,
     Janosi-Hanamoto slip term, then capped by a measured drawbar coefficient
     when the terrain case has one.
     """
+    ceiling = coulomb_ceiling(load_per_screw, geom, terrain) * geom.traction_efficiency
+    if terrain.mu_db_max is not None:
+        ceiling = min(ceiling, terrain.mu_db_max * load_per_screw)
+    return ceiling * slip_mobilisation(slip, geom, terrain)
+
+
+def coulomb_ceiling(load_per_screw: float, geom: ScrewGeometry, terrain) -> float:
+    """Uncorrected Mohr-Coulomb shear limit on the equivalent contact patch, N.
+
+    A_c c + W_s tan(phi), with A_c = b(z) L at the static sinkage. This is
+    what a rigid running gear could mobilise at most; a rotating screw in
+    dry sand reaches a fraction of it (see traction_efficiency).
+    """
     z = sinkage(load_per_screw, geom, terrain)
     b = contact_width(z, geom.outer_diameter)
     area = b * geom.length
-    ceiling = area * terrain.cohesion + load_per_screw * math.tan(math.radians(terrain.phi))
-    if terrain.mu_db_max is not None:
-        ceiling = min(ceiling, terrain.mu_db_max * load_per_screw)
+    return area * terrain.cohesion + load_per_screw * math.tan(math.radians(terrain.phi))
 
+
+def slip_mobilisation(slip: float, geom: ScrewGeometry, terrain) -> float:
+    """Janosi-Hanamoto mobilisation factor in [0, 1] for shear travel j = s L."""
     travel = max(slip, 1e-6) * geom.length
-    mobilised = 1.0 - (terrain.shear_K / travel) * (1.0 - math.exp(-travel / terrain.shear_K))
-    return ceiling * mobilised
+    return 1.0 - (terrain.shear_K / travel) * (1.0 - math.exp(-travel / terrain.shear_K))
+
+
+def equilibrium_slip(load_per_screw: float, required_per_screw: float,
+                     geom: ScrewGeometry, terrain) -> float:
+    """Slip at which available thrust equals required thrust, or None.
+
+    Solves F_av(s) = F_req for s in (0, 1) by bisection on the monotonic
+    Janosi-Hanamoto mobilisation. Returns None when even full slip cannot
+    supply the required thrust, which is the traction-limited case. This is
+    the operating point the vehicle would settle at; the design slip used
+    for power sizing is a separate, deliberately conservative, choice.
+    """
+    if drawbar_available(load_per_screw, 1.0, geom, terrain) < required_per_screw:
+        return None
+    lo, hi = 1e-6, 1.0
+    for _ in range(100):
+        mid = 0.5 * (lo + hi)
+        if drawbar_available(load_per_screw, mid, geom, terrain) < required_per_screw:
+            lo = mid
+        else:
+            hi = mid
+    return 0.5 * (lo + hi)
 
 
 def kinematics(geom: ScrewGeometry, speed: float, slip: float):

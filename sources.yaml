@@ -193,12 +193,27 @@ nrc_mobility:
 # --- sources behind database rows that are not in the shared PDF set ---
 
 wes_tr3641:
-  authors: US Army Waterways Experiment Station
-  title: Trafficability tests with the Marsh Screw Amphibian on coarse grained and fine grained soils
-  venue: Technical Report 3-641, Vicksburg, 1964
+  authors: US Army Engineer Waterways Experiment Station (S. J. Knight, Army Mobility Research Branch)
+  title: Trafficability tests with the Marsh Screw Amphibian on coarse-grained and fine-grained soils
+  venue: Technical Report 3-641, Vicksburg, January 1964
+  url: https://apps.dtic.mil/sti/tr/pdf/AD0450621.pdf
+  also: https://digital.library.unt.edu/ark:/67531/metadc303901/
   supplies:
-    - Drawbar pull up to 64 percent of vehicle weight in very soft ground
-  notes: Fill the geometry and mass fields from this report. It is the best Level A validation dataset available.
+    - MSA geometry, p. 4-5. Rotor drum 26 in, 31 in over the helix, 152 in overall and 129.5 in in ground contact, helix lead 48 in, helix angle about 32 deg to the vertical, rotor spacing 66 in centre to centre
+    - MSA masses, p. 4. 2860 lb empty, 3954 lb loaded. Ground pressure at 3 in penetration 0.52 psi empty and 0.72 psi loaded. Computed VCI 8 empty, 11 loaded
+    - Engine 116 bhp at 3600 rpm, p. 4. Low forward ratio 2.45, reverse 2.20, p. 37
+    - Sand, loaded. Towing force up to about 24 percent of test weight at full throttle and about 0.5 mph, p. 20-21. Climbed 18 deg, failed 21 deg, CI about 75, Table 1C p. 20. Average speed 1.6 mph, max 2.3 mph, CI about 95, p. 18-19. First-pass rut 5.6 in unloaded on CI 60, 7.9 in after 50 passes, test 39
+    - Fine-grained soil with free water, loaded. 425 lb maximum towing force at about 28 percent slip on RCI 20 to 30, Table 2B p. 42-43. 50 passes completed down to RCI 5, VCI 5 established p. 26. Up to about 5 mph at RCI 10, p. 37. Immobilised on dry-surfaced clay at RCI 6 to 9 despite adequate strength, p. 28-36
+    - Buckshot clay test 97. Immobilised dry, ran after wetting to about 48 percent moisture, immobilised again once the water film wiped off, p. 33-37
+    - M29C Weasel comparison. 50-pass VCI about 25, one-pass 18, p. 28. Rice-field dike course 28 s against 78 s for the MSA, p. 40
+  notes: >
+    Numbers above were read from the DTIC copy through a text extraction and
+    should be checked against the scanned pages before the paper is final.
+    The value "drawbar pull up to 64 percent of weight" that an earlier
+    version of this file attributed to this report is NOT in it as far as the
+    extraction shows, and was most likely a misreading of test number 64D.
+    Rotor helix assumed single start (not stated in the extraction). This is
+    the Level A validation dataset for the screw-terrain block.
 
 tandem_tm2022:
   title: A rideshare tensegrity rover concept to explore Titan's lands and oceans

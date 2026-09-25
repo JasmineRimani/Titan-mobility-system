@@ -20,7 +20,8 @@ from .mers import (MassModel, DRIVETRAIN_FRACTION_RANGE, drive_module_mass,
                    eps_mass, required_motor_torque, running_gear_mass)
 from .screw import (ScrewGeometry, bulldozing_flag, check_validity,
                     compaction_resistance, contact_width, cost_of_transport,
-                    displaced_volume, drawbar_available, flotation_vol,
+                    displaced_volume, drawbar_available, equilibrium_slip,
+                    flotation_vol,
                     kinematics, obstacle_capability, radius_to_sinkage,
                     rolling_resistance, sinkage, torque_and_power,
                     traction_limited_slope)
@@ -36,12 +37,21 @@ class Mission:
       target_speed 0.028 m/s       genta2011, 100 m/h max speed
       design_slope 20 deg          genta2011, max grade 36 percent
       max_obstacle 0.10 m          genta2011, 100 mm obstacle, no wheel lift-off
-      delivered_mass_cap 344 kg    tandem_tm2022, predicted total mass.
-                                   zimmerman_postHuygens delivers 100 kg of
-                                   science payload inside a 5028 kg launch
-                                   with about 30 percent margin, so the
-                                   100 to 350 kg class is the defensible
-                                   range for a Titan surface vehicle.
+      delivered_mass_cap 213 kg    tandem_tm2022, growth-predicted LANDER
+                                   mass. The same source's 344 kg predicted
+                                   total includes a 131 kg aeroshell, so it
+                                   is a system figure, not a vehicle mass.
+                                   Both are carried: the lander figure is
+                                   the feasibility screen the paper uses,
+                                   the system figure is reported alongside
+                                   (system_mass_cap). zimmerman_postHuygens
+                                   delivers 100 kg of science payload inside
+                                   a 5028 kg launch with about 30 percent
+                                   margin, so the 100 to 350 kg class is the
+                                   defensible range for a Titan surface
+                                   vehicle. Neither is an EDL-derived limit
+                                   for a screw rover; both are comparative
+                                   benchmarks.
       design_slip 0.30             villacres2023 reports screw slip reaching
                                    40 percent, so 30 percent is inside the
                                    observed range but is still a CHOICE
@@ -61,7 +71,8 @@ class Mission:
     min_radius_to_sinkage: float = 6.0   # r/z >= 6 to 10, rimani_week4_mobility
     motor_nominal_rpm: float = 5000.0    # CHOICE, for reporting the gear ratio
     max_obstacle: float = 0.10
-    delivered_mass_cap: float = 344.0
+    delivered_mass_cap: float = 213.0    # lander-only benchmark, tandem_tm2022
+    system_mass_cap: float = 344.0       # lander plus aeroshell, tandem_tm2022
     cg_height: float = 0.6
     drag_coefficient: float = 1.2
 
@@ -128,6 +139,8 @@ def size(mission: Mission,
                       + r_comp + f_aero)
         f_available = geom.n_screws * drawbar_available(
             load_per_screw, mission.design_slip, geom, terrain)
+        s_eq = equilibrium_slip(load_per_screw, f_required / geom.n_screws,
+                                geom, terrain)
 
         omega, _ = kinematics(geom, mission.target_speed, mission.design_slip)
         torque, p_mech = torque_and_power(f_required / geom.n_screws, geom, omega)
@@ -251,6 +264,15 @@ def size(mission: Mission,
         "cost_of_transport": cost_of_transport(p_drive_elec, m_total * env.gravity,
                                                mission.target_speed),
         "mobility_mass_fraction": m_mobility / m_total,
+        # slip at which F_av(s) = F_req on this terrain. -1 means traction
+        # limited: even full slip cannot supply the required thrust.
+        "equilibrium_slip": -1.0 if s_eq is None else s_eq,
+        # drive energy per metre at the design point, and the daily traverse
+        # the sized source supports at the assumed duty cycle. Mission-level
+        # numbers a Titan science team can read directly.
+        "drive_energy_Wh_per_km": p_drive_elec / mission.target_speed / 3.6,
+        "traverse_m_per_earth_day": mission.target_speed * mission.drive_duty
+                                    * 24.0 * 3600.0,
         "overturning_margin": overturn,
         "screw_vol": screw_vol,
         "screw_vol_req": screw_vol_req,
@@ -258,6 +280,7 @@ def size(mission: Mission,
     }
     checks = {
         "mass_within_delivered_cap": m_total <= mission.delivered_mass_cap,
+        "mass_within_system_cap": m_total <= mission.system_mass_cap,
         "radius_to_sinkage_ok": radius_to_sinkage(z, geom) >= mission.min_radius_to_sinkage,
         "thrust_available": f_available >= f_required,
         "overturning_margin_ge_2": overturn >= 2.0,

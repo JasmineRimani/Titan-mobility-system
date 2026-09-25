@@ -101,9 +101,11 @@ soils.
 
 **Available thrust.** Mohr-Coulomb ceiling on the contact patch, mobilised by
 a Janosi-Hanamoto slip term, then capped by a measured drawbar coefficient
-where the terrain case has one. Two such measurements exist: 0.64 of vehicle
-weight in very soft ground (wes_tr3641) and 0.54 in snow for the 1/5 scale
-model (villacres2023).
+where the terrain case has one. Three such measurements exist: 0.24 of test
+weight on sand and 0.107 on wet clay for the full-scale MSA (wes_tr3641,
+p. 21 and p. 42-43) and 0.54 in snow for the 1/5 scale model
+(villacres2023). An earlier version of this package carried 0.64 for the
+MSA; that figure is not in the report and was removed (see section 10).
 
 **Motion resistance.** Two routes, and they overlap. Bekker compaction
 resistance is mechanistic. The rolling resistance coefficient c_rr from
@@ -383,8 +385,11 @@ does not run the full mass-closure loop on a terrestrial vehicle, because
 closing the loop needs a power-system model and a radioisotope source is the
 wrong model for a diesel amphibian.
 
-Right now exactly one row runs, and it is a synthetic demo row labelled as
-such. Every real entry is missing screw geometry. That is the honest state of
+The Level B path still runs only on the synthetic demo row, because no real
+entry has both a documented mobility mass and its screw geometry. The
+Marsh Screw Amphibian now has its geometry, weights and measured
+performance in the database, and `validate.py` runs a Level A comparison
+of the screw-terrain block against it (section 10). That is the honest state of
 the field: the geometry of the historical screw vehicles is in the original
 test reports, not in the review literature. `validate.py` prints the missing
 fields ranked by frequency, and the Marsh Screw Amphibian reports are the
@@ -462,3 +467,91 @@ data/benchmarks.csv     scalar results from the literature to check against
 data/actuators.csv      catalogue data for the actuator fit
 REFERENCES.md           reading list, grouped by which block it supports
 ```
+
+
+---
+
+## 10. Update of 25 September 2026
+
+**Mass screen moved to the lander-only benchmark.** The paper adopts the
+213 kg growth-predicted lander mass from tandem_tm2022, not the 344 kg
+total that includes a 131 kg aeroshell. `Mission.delivered_mass_cap` is now
+213 and `Mission.system_mass_cap` carries 344 for reference; both appear
+on the trade-space figures. The previous baseline geometry (0.60 / 0.10 /
+1.20 / 0.45) closed at 235 kg and failed the new screen, so the default
+`ScrewGeometry` was re-based to 0.55 / 0.08 / 1.10 / 0.45, the smallest
+geometry in the sweep that passes every screen including drum-only
+flotation. It closes at 197 kg. The numbers in sections 4 to 7 above were
+written for the old baseline; `outputs/run_example.log` is current.
+
+**The Marsh Screw Amphibian is now a real validation case.** The WES
+report (DTIC AD0450621) gives the rotor geometry, test weights, ground
+pressures, ruts, towing forces and slope results, all now in
+`data/vehicles.csv`, `data/benchmarks.csv` and `sources.yaml` with page
+references. `validate.py` Level A compares the screw-terrain block with
+them: contact pressure within 16 percent, static sinkage a factor of 4 to
+13 below the first-pass rut on sand, and a Mohr-Coulomb traction ceiling
+1.5 to 3 times the measured drawbar pull.
+
+**Screw traction efficiency.** That last gap is now a parameter,
+`ScrewGeometry.traction_efficiency` (kappa), multiplying the Mohr-Coulomb
+ceiling. Calibrated on the MSA it is about 0.35 from the towing test and
+0.61 to 0.70 from the slope tests. `run_example.py` carries 1.0, 0.65 and
+0.35 into the Titan case: the 20 degree drawbar margin goes 2.45, 1.59,
+0.86. Figure 5 shows the sweep. Mass does not move, because thrust is
+sized from the requirement.
+
+**A database error corrected.** The drawbar coefficient of 0.64 attributed
+to wes_tr3641 could not be found in the report and was most likely a
+misreading of test number 64D. It has been replaced everywhere by the
+report's own 0.24 (sand) and 0.107 (wet clay). The MSA masses were also
+replaced by the report's 2860 lb empty and 3954 lb loaded. The report
+numbers came through a text extraction of the DTIC scan; check pages 4,
+5, 18, 20, 21 and 42 to 43 against the PDF before relying on them further.
+
+**Equilibrium slip.** `sizing/screw.py` now solves the slip at which
+available thrust equals required thrust; the loop reports it as
+`equilibrium_slip` (or -1 when traction limited). Power is still sized at
+the conservative design slip, and the paper should say so.
+
+**Two mission-level numbers.** The loop reports drive energy per kilometre
+and the traverse per Earth day at the assumed duty cycle (445 Wh/km and
+about 360 m/day for the baseline).
+
+**Paper material.** `paper/REVIEW_2026-09-25.md` is the review of the
+draft; `paper/draft_sections.tex` holds draft text for the abstract,
+abbreviations, related work, case study, validation, results and
+conclusion, with every number traceable to the logs.
+
+**MATLAB version.** `matlab/` (also zipped as `matlab_screw_rover_sizing.zip`
+for handing over) is a line-for-line port of `sizing/`, `run_example.py`,
+`validate.py` and `make_figures.py` as plain MATLAB functions, tested under
+GNU Octave 8 against the Python outputs to the printed precision. It
+carries its own copy of `data/` and `sources.yaml`; when the database
+changes here, copy the CSVs across. `matlab/README_MATLAB.md` has the
+directions and the figure explanations written for the student;
+`paper/STUDENT_BRIEF_2026-09-25.md` is the shorter handout.
+
+**Level C validation.** `validate.py` (and `validate.m`) now also design a
+new vehicle to the Marsh Screw Amphibian requirements through the whole
+closure loop, with the MSA rotor and an engine-driven mass model whose
+coefficients are all assumed: 1170 kg converged against 1794 kg built,
+flotation margin 1.9 for a vehicle that floated, and the 18 deg slope
+climbed at kappa = 0.65 but not at 0.35.
+
+**Slope convention.** The gravity study and the traction calibration now
+use the loop's own force balance, F_av >= W sin(theta) + R, for the
+largest slope held, instead of two different conventions. The wet-clay
+case's assumed c_rr was lowered from 0.25 to 0.05, because the report
+says free water and low friction are what let the MSA move on it.
+
+**Figures for the paper (evening update).** `make_figures.py` was rewritten so
+that no text sits inside a plot area: reference lines and markers are named in
+a legend below the axes, bar values are on a secondary axis, and titles are
+left to the captions. Each figure is resized until its tight bounding box is
+exactly one column (3.08 in) or the full text width (6.28 in) of the IAC
+template, so it is placed at 100 % scale. `python make_figures.py OUTDIR`
+also copies the figures into OUTDIR (the paper folder). The feasibility sweep
+now scales blade height, length and lead in the baseline proportions, so it
+passes through the baseline design; under 213 kg the 0.55 m drum passes up to
+20 kg of payload.

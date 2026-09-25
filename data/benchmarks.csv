@@ -1,5 +1,4 @@
 quantity,value,unit,context,source_id,evidence
-drawbar_coefficient_max,0.64,-,Marsh Screw Amphibian in very soft or liquefied ground,wes_tr3641,direct
 drawbar_coefficient_max,0.54,-,Marsh Screw Amphibian 1/5 scale model in snow,villacres2023,direct
 slip_typical_max,0.40,-,screw propulsion as reported by Cole 1961,villacres2023,direct
 vehicle_cone_index,6,-,Marsh Screw Amphibian,villacres2023,direct
@@ -52,3 +51,22 @@ arcsnake_module_power_max,310,W,per module at 12 to 60 V,richter2022,direct
 arcsnake_system_power_max,1240,W,four module system,richter2022,direct
 arcsnake_system_mass,6.1,kg,four module system with head,richter2022,direct
 arcsnake_system_length,1.287,m,maximum extended length,richter2022,direct
+drawbar_coefficient_max,0.24,-,"MSA loaded (3954 lb) towing on sand, full throttle at about 0.5 mph, cone index 75 to 95, report p. 20-21",wes_tr3641,direct
+drawbar_coefficient_max,0.107,-,"MSA loaded on fat clay with free water, RCI 20 to 30, 425 lb at about 28 percent slip, Table 2B p. 42-43, over 3954 lb",wes_tr3641,calculated
+slip_at_max_drawbar,0.28,-,"MSA on fine-grained soil, towing force peaks then falls with slip, p. 43",wes_tr3641,direct
+slope_climbed_max,18,deg,"MSA loaded on sand CI about 75, Table 1C p. 20; 21 deg not negotiated",wes_tr3641,direct
+slope_failed_min,21,deg,"MSA loaded on sand CI about 75, Table 1C p. 20",wes_tr3641,direct
+msa_ground_pressure_empty,3.59,kPa,"0.52 psi at 3 in penetration, 2860 lb, report p. 4",wes_tr3641,direct
+msa_ground_pressure_loaded,4.96,kPa,"0.72 psi at 3 in penetration, 3954 lb, report p. 4",wes_tr3641,direct
+msa_rut_first_pass_sand,0.142,m,"5.6 in after one pass, unloaded, sand CI about 60, test 39 p. 16-18",wes_tr3641,direct
+msa_rut_50_pass_sand,0.201,m,"7.9 in after 50 passes, same test",wes_tr3641,direct
+msa_rut_50_pass_clay,0.066,m,"2.6 in after 50 passes, Albemarle Lake test 1, loaded, RCI 34",wes_tr3641,direct
+msa_speed_sand_avg,0.72,m/s,"1.6 mph average, loaded, straight-line tests 59-60, CI about 95, p. 18-19",wes_tr3641,direct
+msa_speed_sand_max,1.03,m/s,"2.3 mph maximum, same tests",wes_tr3641,direct
+msa_speed_soft_clay_max,2.2,m/s,"about 5 mph at RCI about 10 with free water, test 98 p. 37",wes_tr3641,direct
+msa_speed_slope,0.22,m/s,"about 0.5 mph on sand slopes, p. 20",wes_tr3641,direct
+vehicle_cone_index,5,-,"MSA on fine-grained soil, 50-pass VCI, p. 26",wes_tr3641,direct
+vehicle_cone_index,25,-,"M29C Weasel 50-pass VCI estimated in the same programme, p. 28 (18 for one pass)",wes_tr3641,direct
+msa_vci_computed,8,-,"computed VCI empty (11 loaded), report p. 4",wes_tr3641,direct
+msa_obstacle_course_time,78,s,"simulated rice-field dikes, against 28 s for the M29C Weasel, p. 40",wes_tr3641,direct
+msa_mud_immobilisation_moisture,0.48,-,"buckshot clay: immobilised dry, ran after hosing to about 48 percent moisture, immobilised again when the water film wiped off, test 97 p. 33-37",wes_tr3641,direct

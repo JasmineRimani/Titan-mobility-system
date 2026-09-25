@@ -1,24 +1,37 @@
 """Publication figures for the paper.
 
-    python make_figures.py
+    python make_figures.py              writes into figures/
+    python make_figures.py OUTDIR       writes into OUTDIR as well
 
-Writes figures/fig1..fig4 as PDF (for the paper) and PNG (for checking).
-Every figure is generated from the model, so they cannot drift from the code.
+Writes fig1..fig5 as PDF (for the paper) and PNG (for checking). Every
+figure is generated from the model, so it cannot drift from the code.
 
-Design notes: single hue for magnitude, a second hue only where the split is
-real (sourced against assumed), pass and fail carried by colour AND marker
-shape AND a text label, never colour alone. Palette validated for colour
-vision deficiency on a white print surface.
+Layout rules, kept deliberately strict so the figures stay clean at column
+width in a two-column paper:
+  - no text inside the plot area: no annotations, no value labels, no
+    in-figure titles. Reference lines and marked points are identified in a
+    legend placed outside the axes; bar values go on a secondary tick axis
+    outside the plot; the title and the explanation live in the caption.
+  - every figure is resized until its tight bounding box, legend and tick
+    labels included, is exactly the printed width (one column or the full
+    text width of the IAC template), so it is placed at 100 % scale and
+    the 7 to 8 pt text stays 7 to 8 pt on paper.
+  - one hue for magnitude, a second hue only where the split is real
+    (sourced against assumed, calibrated against uncorrected).
+  - pass and fail carried by colour AND marker, hatch or tick text, never
+    colour alone.
 """
 
-import math
-import os
 import dataclasses as dc
+import os
+import shutil
+import sys
 
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
+from matplotlib.patches import Patch
 
 from sizing.environment import TITAN
 from sizing.mers import AREAL_DENSITY_EVIDENCE, MassModel
@@ -29,268 +42,342 @@ from sizing.terrain import CASES, TITAN_LUNAR_PROXY
 OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "figures")
 
 # --- palette -------------------------------------------------------------
-INK        = "#0b0b0b"
-INK2       = "#52514e"
-MUTED      = "#898781"
-GRID       = "#e1e0d9"
-AXIS       = "#c3c2b7"
-SERIES     = "#2a78d6"   # blue, slot 1
-SERIES2    = "#eb6834"   # orange, slot 2
-FAIL       = "#d03b3b"   # critical
-ORDINAL5   = ["#86b6ef", "#5598e7", "#2a78d6", "#1c5cab", "#104281"]
+INK = "#1a1a1a"
+MUTED = "#6f6e69"
+GRID = "#e4e3dc"
+AXIS = "#9c9b93"
+BLUE = "#2a78d6"
+ORANGE = "#eb6834"
+RED = "#c8342f"
+BLUES5 = ["#9cc3f2", "#5f9fe8", "#2a78d6", "#1c5cab", "#0e3c78"]
+
+# Printed widths in the IAC template: A4, 0.98 in margins, 10 pt column gap.
+COL_W = 3.08      # in, one column
+FULL_W = 6.28     # in, full text width
 
 plt.rcParams.update({
     "font.family": "serif",
-    "font.serif": ["DejaVu Serif", "Times New Roman", "Nimbus Roman"],
+    "font.serif": ["TeX Gyre Termes", "Nimbus Roman", "Liberation Serif",
+                   "Times New Roman", "DejaVu Serif"],
+    "mathtext.fontset": "stix",
     "font.size": 8,
-    "axes.labelsize": 8.5,
-    "axes.titlesize": 9,
+    "axes.labelsize": 8,
     "axes.edgecolor": AXIS,
     "axes.labelcolor": INK,
-    "axes.linewidth": 0.8,
-    "xtick.color": MUTED, "ytick.color": MUTED,
-    "text.color": INK,
+    "axes.linewidth": 0.7,
+    "xtick.color": INK, "ytick.color": INK,
     "xtick.labelsize": 7.5, "ytick.labelsize": 7.5,
+    "xtick.major.width": 0.6, "ytick.major.width": 0.6,
+    "xtick.major.size": 3, "ytick.major.size": 3,
+    "text.color": INK,
     "grid.color": GRID, "grid.linewidth": 0.6,
-    "legend.fontsize": 7.5, "legend.frameon": False,
+    "legend.fontsize": 7.5,
+    "legend.frameon": False,
+    "legend.handlelength": 2.0,
     "figure.facecolor": "white", "axes.facecolor": "white",
     "savefig.facecolor": "white",
 })
 
 MISSION, GEOM, TERRAIN = Mission(), ScrewGeometry(), TITAN_LUNAR_PROXY
 CAP = MISSION.delivered_mass_cap
+SYS_CAP = MISSION.system_mass_cap
+EXTRA_OUT = []
 
 
-def tidy(ax):
+def tidy(ax, grid_axis="y"):
     for side in ("top", "right"):
         ax.spines[side].set_visible(False)
-    ax.grid(axis="y", alpha=0.9)
+    ax.grid(axis=grid_axis)
     ax.set_axisbelow(True)
 
 
-def total_for_rho(rho):
-    return size(MISSION, GEOM, TERRAIN, TITAN,
-                dc.replace(MassModel(), drum_areal_density=rho)).total_mass
+def bare(ax):
+    for side in ("top", "left", "bottom", "right"):
+        ax.spines[side].set_visible(False)
 
 
-def save(fig, name):
+def render(name, builder, width, height):
+    """Build the figure at the width whose tight bounding box equals width."""
+    w = width
+    for _ in range(6):
+        fig = builder(w, height)
+        fig.canvas.draw()
+        got = fig.get_tightbbox(fig.canvas.get_renderer()).width
+        if abs(got - width) < 0.01:
+            break
+        plt.close(fig)
+        w += width - got
     os.makedirs(OUT, exist_ok=True)
     for ext in ("pdf", "png"):
-        fig.savefig(os.path.join(OUT, f"{name}.{ext}"), dpi=300,
-                    bbox_inches="tight", pad_inches=0.02)
+        path = os.path.join(OUT, f"{name}.{ext}")
+        fig.savefig(path, dpi=300, bbox_inches="tight", pad_inches=0.0)
+        for d in EXTRA_OUT:
+            os.makedirs(d, exist_ok=True)
+            shutil.copy(path, d)
     plt.close(fig)
-    print(f"  wrote figures/{name}.pdf and .png")
+    print(f"  wrote figures/{name}.pdf and .png, {width:.2f} in wide")
+
+
+def run(ms=None, gm=None, tr=None, mm=None):
+    return size(ms or MISSION, gm or GEOM, tr or TERRAIN, TITAN, mm or MassModel())
+
+
+def scaled_geometry(d):
+    """Baseline proportions scaled to drum diameter d, so the sweep passes
+    exactly through the baseline design at d = GEOM.drum_diameter."""
+    k = d / GEOM.drum_diameter
+    return dc.replace(GEOM, drum_diameter=d, blade_height=GEOM.blade_height * k,
+                      length=GEOM.length * k, pitch=GEOM.pitch * k)
+
+
+def reference_handles():
+    return [Line2D([], [], color=MUTED, ls="--", lw=1.0,
+                   label=f"lander-only benchmark, {CAP:.0f} kg"),
+            Line2D([], [], color=MUTED, ls=":", lw=1.1,
+                   label=f"lander plus aeroshell, {SYS_CAP:.0f} kg")]
 
 
 # =========================================================================
 def fig1_closure_limit():
+    """Converged total mass against drum shell areal density."""
+    def total(rho):
+        return run(mm=dc.replace(MassModel(), drum_areal_density=rho)).total_mass
+
     rhos = [5 + 0.5 * i for i in range(111)]
-    masses = [total_for_rho(r) for r in rhos]
-
+    masses = [total(r) for r in rhos]
     lo, hi = 1.0, 200.0
-    for _ in range(60):
+    for _ in range(50):
         mid = 0.5 * (lo + hi)
-        if total_for_rho(mid) <= CAP:
-            lo = mid
-        else:
-            hi = mid
+        lo, hi = (mid, hi) if total(mid) <= CAP else (lo, mid)
     limit = 0.5 * (lo + hi)
+    wheels = [v for k, v in AREAL_DENSITY_EVIDENCE.items() if k != "arcsnake_screw_module"]
+    screw = AREAL_DENSITY_EVIDENCE["arcsnake_screw_module"]
+    wheel_m = [total(v) for v in wheels]
+    screw_m = total(screw)
 
-    fig, ax = plt.subplots(figsize=(3.6, 3.0))
-    ax.plot(rhos, masses, color=SERIES, lw=2, zorder=3)
-    ax.axhline(CAP, color=MUTED, ls="--", lw=1, zorder=2)
-    ax.axvline(limit, color=FAIL, ls=":", lw=1.2, zorder=2)
+    def build(w, h):
+        fig, ax = plt.subplots(figsize=(w, h))
+        ax.plot(rhos, masses, color=BLUE, lw=1.6, zorder=3)
+        ax.axhline(CAP, color=MUTED, ls="--", lw=1.0, zorder=2)
+        ax.axhline(SYS_CAP, color=MUTED, ls=":", lw=1.1, zorder=2)
+        ax.axvline(limit, color=RED, ls="-.", lw=1.0, zorder=2)
+        ax.plot(wheels, wheel_m, ls="none", marker="o", ms=4.4, mfc="white",
+                mec=INK, mew=0.9, zorder=5)
+        ax.plot([screw], [screw_m], ls="none", marker="D", ms=4.4, mfc=ORANGE,
+                mec="white", mew=0.6, zorder=6)
+        ax.set_xlim(5, 60)
+        ax.set_ylim(120, 560)
+        ax.set_xlabel(r"drum shell areal density, $\sigma_d$  [kg m$^{-2}$]")
+        ax.set_ylabel("converged total mass  [kg]")
+        tidy(ax, "both")
+        handles = [
+            Line2D([], [], color=BLUE, lw=1.6, label="baseline geometry"),
+            Line2D([], [], color=RED, ls="-.", lw=1.0,
+                   label=f"closure limit, {limit:.1f} kg m$^{{-2}}$"),
+            *reference_handles(),
+            Line2D([], [], ls="none", marker="o", ms=4.4, mfc="white", mec=INK,
+                   mew=0.9, label="micro-rover wheels"),
+            Line2D([], [], ls="none", marker="D", ms=4.4, mfc=ORANGE, mec="white",
+                   label="ARCSnake screw module"),
+        ]
+        fig.legend(handles=handles, loc="upper center", bbox_to_anchor=(0.5, -0.01),
+                   ncol=2, columnspacing=0.8, handletextpad=0.4, handlelength=1.8)
+        return fig
 
-    ax.text(59, CAP + 8, f"delivered mass cap {CAP:.0f} kg", ha="right",
-            va="bottom", fontsize=7, color=INK2)
-    ax.text(limit - 1.2, 630, f"closure limit\n{limit:.1f} kg m$^{{-2}}$",
-            ha="right", va="top", fontsize=7, color=FAIL)
-
-    for name, rho in sorted(AREAL_DENSITY_EVIDENCE.items(), key=lambda kv: kv[1]):
-        m = total_for_rho(rho)
-        ok = m <= CAP
-        ax.plot(rho, m, marker="o" if ok else "X", ms=5.5,
-                mfc=SERIES if ok else FAIL, mec="white", mew=0.8, zorder=5,
-                linestyle="none")
-
-    labels = [("Crab,\nARCSnake", 12.7, "left", 7, -2),
-              ("ELMS", 18.3, "left", 7, -3),
-              ("Marsokhod", 24.5, "left", 7, -3),
-              ("ELMS (Table 68)", 31.8, "right", -7, 3),
-              ("Sojourner, Shrimp", 35.0, "left", 7, -4),
-              ("Nanokhod", 53.1, "right", -7, 3)]
-    for txt, rho, ha, dx, dy in labels:
-        ax.annotate(txt, (rho, total_for_rho(rho)),
-                    textcoords="offset points", xytext=(dx, dy),
-                    ha=ha, fontsize=6.5, color=INK2)
-
-    ax.set_xlim(5, 60)
-    ax.set_ylim(140, 660)
-    ax.set_xlabel("drum shell areal density  [kg m$^{-2}$]")
-    ax.set_ylabel("converged total mass  [kg]")
-    ax.set_title("The drum shell is a requirement, not an input", loc="left",
-                 color=INK, pad=8)
-    handles = [Line2D([], [], marker="o", ls="none", mfc=SERIES, mec="white",
-                      ms=5.5, label="design closes"),
-               Line2D([], [], marker="X", ls="none", mfc=FAIL, mec="white",
-                      ms=5.5, label="does not close")]
-    ax.legend(handles=handles, loc="lower right", handletextpad=0.4)
-    tidy(ax)
-    save(fig, "fig1_closure_limit")
+    render("fig1_closure_limit", build, COL_W, 2.3)
     return limit
 
 
 # =========================================================================
 def fig2_sensitivity():
-    base = size(MISSION, GEOM, TERRAIN, TITAN, MassModel()).total_mass
-
-    def mm(**kw):
-        return size(MISSION, GEOM, TERRAIN, TITAN,
-                    dc.replace(MassModel(), **kw)).total_mass
-
-    def ms(**kw):
-        return size(dc.replace(MISSION, **kw), GEOM, TERRAIN, TITAN, MassModel()).total_mass
-
-    def gm(**kw):
-        return size(MISSION, dc.replace(GEOM, **kw), TERRAIN, TITAN, MassModel()).total_mass
-
-    def tr(**kw):
-        return size(MISSION, GEOM, dc.replace(TERRAIN, **kw), TITAN, MassModel()).total_mass
-
+    """Span of converged total mass when each uncertain input is swept alone."""
+    base = run().total_mass
+    mmr = lambda **kw: run(mm=dc.replace(MassModel(), **kw)).total_mass
+    msr = lambda **kw: run(ms=dc.replace(MISSION, **kw)).total_mass
+    gmr = lambda **kw: run(gm=dc.replace(GEOM, **kw)).total_mass
+    trr = lambda **kw: run(tr=dc.replace(TERRAIN, **kw)).total_mass
     rows = [
-        ("drum areal density\n12.6 to 53.1 kg m$^{-2}$",
-         mm(drum_areal_density=12.6), mm(drum_areal_density=53.1), True),
-        ("blade areal density\n14.6 to 29.1 kg m$^{-2}$",
-         mm(blade_areal_density=14.6), mm(blade_areal_density=29.1), True),
-        ("drive duty cycle\n0.05 to 0.40", ms(drive_duty=0.05), ms(drive_duty=0.40), False),
-        ("power source\n2.44 to 3.14 W kg$^{-1}$",
-         mm(source_specific_power=2.44), mm(source_specific_power=3.14), True),
-        ("soil-on-metal friction\n0.4 to 0.8",
-         gm(soil_metal_friction=0.4), gm(soil_metal_friction=0.8), False),
-        ("drive module mass\n0.5 to 2.0 kg", mm(module_mass=0.5), mm(module_mass=2.0), True),
-        ("design slip\n0.10 to 0.40", ms(design_slip=0.10), ms(design_slip=0.40), True),
-        ("drivetrain efficiency\n0.47 to 0.78",
-         mm(drivetrain_efficiency_model="patel"),
-         mm(drivetrain_efficiency_model="course"), True),
-        ("rolling resistance\n0.10 to 0.25", tr(c_rr=0.10), tr(c_rr=0.25), True),
+        ("drum areal density, 12.6 to 53.1 kg m$^{-2}$",
+         mmr(drum_areal_density=12.6), mmr(drum_areal_density=53.1), True),
+        ("blade areal density, 14.6 to 29.1 kg m$^{-2}$",
+         mmr(blade_areal_density=14.6), mmr(blade_areal_density=29.1), True),
+        ("drive duty cycle, 0.05 to 0.40", msr(drive_duty=0.05), msr(drive_duty=0.40), False),
+        ("power source, 2.44 to 3.14 W kg$^{-1}$",
+         mmr(source_specific_power=2.44), mmr(source_specific_power=3.14), True),
+        ("soil-metal friction, 0.4 to 0.8",
+         gmr(soil_metal_friction=0.4), gmr(soil_metal_friction=0.8), False),
+        ("drive module mass, 0.5 to 2.0 kg", mmr(module_mass=0.5), mmr(module_mass=2.0), True),
+        ("design slip, 0.10 to 0.40", msr(design_slip=0.10), msr(design_slip=0.40), True),
+        ("drivetrain efficiency, 0.47 to 0.78",
+         mmr(drivetrain_efficiency_model="patel"),
+         mmr(drivetrain_efficiency_model="course"), True),
+        ("rolling resistance $c_{rr}$, 0.10 to 0.25", trr(c_rr=0.10), trr(c_rr=0.25), True),
     ]
-    rows.sort(key=lambda r: abs(r[2] - r[1]))
+    rows.sort(key=lambda r: abs(r[2] - r[1]))      # largest at the top
 
-    fig, ax = plt.subplots(figsize=(6.9, 3.3))
-    for i, (label, a, b, sourced) in enumerate(rows):
-        left, right = min(a, b), max(a, b)
-        ax.barh(i, right - left, left=left, height=0.55,
-                color=SERIES if sourced else SERIES2, zorder=3)
-        span = right - left
-        ax.text(right + 6, i, f"{span:.0f} kg  ({100*span/base:.0f}%)",
-                va="center", fontsize=7, color=INK2)
+    def build(w, h):
+        fig, ax = plt.subplots(figsize=(w, h))
+        for i, (_, a, b, sourced) in enumerate(rows):
+            ax.barh(i, abs(b - a), left=min(a, b), height=0.56,
+                    color=BLUE if sourced else ORANGE, zorder=3)
+        ax.axvline(base, color=INK, ls="--", lw=0.9, zorder=4)
+        ax.set_yticks(range(len(rows)))
+        ax.set_yticklabels([r[0] for r in rows])
+        ax.set_ylim(-0.6, len(rows) - 0.4)
+        ax.set_xlim(150, 500)
+        ax.set_xlabel("converged total mass  [kg]")
+        tidy(ax, "x")
+        ax2 = ax.twinx()                    # span values outside the plot area
+        ax2.set_ylim(ax.get_ylim())
+        ax2.set_yticks(range(len(rows)))
+        ax2.set_yticklabels([f"{abs(b - a):.0f} kg ({100 * abs(b - a) / base:.0f}%)"
+                             for _, a, b, _ in rows])
+        ax2.tick_params(axis="y", length=0, pad=4)
+        bare(ax2)
+        handles = [Patch(color=BLUE, label="range taken from a source"),
+                   Patch(color=ORANGE, label="range assumed"),
+                   Line2D([], [], color=INK, ls="--", lw=0.9,
+                          label=f"baseline design, {base:.0f} kg")]
+        fig.legend(handles=handles, loc="upper center", bbox_to_anchor=(0.5, -0.01),
+                   ncol=3, columnspacing=2.0)
+        return fig
 
-    ax.axvline(base, color=MUTED, ls="--", lw=1, zorder=2)
-    ax.text(base - 8, len(rows) - 0.45, f"baseline {base:.0f} kg", ha="right",
-            va="bottom", fontsize=7, color=INK2)
-
-    ax.set_yticks(range(len(rows)))
-    ax.set_yticklabels([r[0] for r in rows], fontsize=7)
-    ax.set_xlabel("converged total mass  [kg]")
-    ax.set_xlim(150, 700)
-    ax.set_ylim(-0.7, len(rows) + 0.15)
-    ax.set_title("What actually moves the answer, each input swept alone",
-                 loc="left", color=INK, pad=8)
-    handles = [plt.Rectangle((0, 0), 1, 1, color=SERIES, label="range from a source"),
-               plt.Rectangle((0, 0), 1, 1, color=SERIES2, label="range assumed")]
-    ax.legend(handles=handles, loc="lower right", handlelength=1.2)
-    for side in ("top", "right"):
-        ax.spines[side].set_visible(False)
-    ax.grid(axis="x", alpha=0.9)
-    ax.set_axisbelow(True)
-    save(fig, "fig2_sensitivity")
+    render("fig2_sensitivity", build, FULL_W, 2.35)
 
 
 # =========================================================================
 def fig3_feasibility_box():
+    """Converged total mass against payload for five drum diameters."""
     payloads = [5, 10, 12, 15, 20, 25, 30, 40]
-    diameters = [0.40, 0.50, 0.60, 0.70, 0.80]
-
-    fig, ax = plt.subplots(figsize=(3.45, 2.9))
-    for k, d in enumerate(diameters):
-        xs, ys, bad_x, bad_y = [], [], [], []
+    diameters = [0.45, 0.55, 0.65, 0.75, 0.85]
+    series = []
+    for d in diameters:
+        pts = []
         for pl in payloads:
-            g = ScrewGeometry(drum_diameter=d, length=2.0 * d, pitch=0.75 * d)
-            r = size(dc.replace(MISSION, payload_mass=pl), g, TERRAIN, TITAN,
-                     MassModel())
-            xs.append(pl); ys.append(r.total_mass)
-            if not r.feasible:
-                bad_x.append(pl); bad_y.append(r.total_mass)
-        ax.plot(xs, ys, color=ORDINAL5[k], lw=1.8, marker="o", ms=3.2,
-                mec="white", mew=0.6, label=f"{d:.2f}", zorder=3)
-        ax.plot(bad_x, bad_y, ls="none", marker="X", ms=6, mfc=FAIL,
-                mec="white", mew=0.8, zorder=5)
+            r = run(ms=dc.replace(MISSION, payload_mass=pl), gm=scaled_geometry(d))
+            pts.append((pl, r.total_mass, r.feasible))
+        series.append(pts)
 
-    ax.axhline(CAP, color=MUTED, ls="--", lw=1, zorder=2)
-    ax.set_ylim(130, 400)
-    ax.text(5, CAP + 4, f"delivered mass cap {CAP:.0f} kg", ha="left",
-            va="bottom", fontsize=7, color=INK2)
-    ax.text(5, 390, "crosses mark infeasible points", ha="left", va="top",
-            fontsize=7, color=FAIL)
-    ax.set_xlabel("science payload mass  [kg]")
-    ax.set_ylabel("converged total mass  [kg]")
-    ax.set_title("Feasibility box for a Titan screw rover", loc="left",
-                 color=INK, pad=8)
-    leg = ax.legend(title="drum diameter  [m]", loc="upper center",
-                    bbox_to_anchor=(0.5, -0.20), ncol=5, handlelength=1.2,
-                    columnspacing=1.0, handletextpad=0.4)
-    leg.get_title().set_fontsize(7)
-    leg.get_title().set_color(INK2)
-    tidy(ax)
-    save(fig, "fig3_feasibility_box")
+    def build(w, h):
+        fig, ax = plt.subplots(figsize=(w, h))
+        for k, pts in enumerate(series):
+            ax.plot([p[0] for p in pts], [p[1] for p in pts], color=BLUES5[k], lw=1.4, zorder=3)
+            ok = [p for p in pts if p[2]]
+            bad = [p for p in pts if not p[2]]
+            ax.plot([p[0] for p in ok], [p[1] for p in ok], ls="none", marker="o", ms=4.0,
+                    mfc=BLUES5[k], mec="white", mew=0.6, zorder=5)
+            ax.plot([p[0] for p in bad], [p[1] for p in bad], ls="none", marker="x", ms=4.0,
+                    mec=RED, mew=1.0, zorder=5)
+        ax.axhline(CAP, color=MUTED, ls="--", lw=1.0, zorder=2)
+        ax.axhline(SYS_CAP, color=MUTED, ls=":", lw=1.1, zorder=2)
+        ax.set_xlim(3, 42)
+        ax.set_ylim(120, 440)
+        ax.set_xlabel("science payload mass  [kg]")
+        ax.set_ylabel("converged total mass  [kg]")
+        tidy(ax, "both")
+        handles = [Line2D([], [], color=BLUES5[k], lw=1.4, label=f"$D_d$ = {d:.2f} m")
+                   for k, d in enumerate(diameters)]
+        handles += [Line2D([], [], ls="none", marker="o", ms=4.0, mfc=MUTED, mec="white",
+                           label="passes every screen"),
+                    Line2D([], [], ls="none", marker="x", ms=4.0, mec=RED, mew=1.0,
+                           label="fails a screen"),
+                    *reference_handles()]
+        fig.legend(handles=handles, loc="upper center", bbox_to_anchor=(0.5, -0.01),
+                   ncol=2, columnspacing=0.8, handletextpad=0.4, handlelength=1.8)
+        return fig
+
+    render("fig3_feasibility_box", build, COL_W, 2.3)
 
 
 # =========================================================================
+PRETTY = {"dry_sand": "dry sand", "sandy_loam": "sandy loam",
+          "clayey_soil": "clayey soil", "lunar_average": "lunar average",
+          "titan_lunar_proxy": "Titan lunar proxy", "mss_a": "MSS-A, Mars",
+          "mss_b": "MSS-B, Mars", "snow_msa": "snow, MSA 1/5*",
+          "msa_sand_wes": "sand, MSA*", "liquefied_soft": "wet clay, MSA*"}
+
+
 def fig4_drawbar_margin():
-    cases = [(n, t) for n, t in CASES.items() if t.has_bekker]
-    res = []
-    for n, t in cases:
-        r = size(MISSION, GEOM, t, TITAN, MassModel())
-        measured = t.mu_db_max is not None
-        res.append((n, r.performance["drawbar_margin"], measured))
-    res.sort(key=lambda x: x[1], reverse=True)   # worst at the top
+    """Uncorrected drawbar margin of the baseline on every terrain case."""
+    res = sorted(((n, run(tr=t).performance["drawbar_margin"])
+                  for n, t in CASES.items() if t.has_bekker), key=lambda x: x[1])
 
-    fig, ax = plt.subplots(figsize=(3.45, 3.0))
-    for i, (name, margin, measured) in enumerate(res):
-        fails = margin < 1.0
-        ax.barh(i, margin, height=0.6, color=FAIL if fails else SERIES, zorder=3)
-        ax.text(margin + 0.05, i, f"{margin:.2f}" + ("  FAIL" if fails else ""),
-                va="center", fontsize=7, color=FAIL if fails else INK2)
-    ax.axvline(1.0, color=MUTED, ls="--", lw=1, zorder=4)
-    ax.text(1.05, len(res) - 0.45, "margin = 1", fontsize=7, color=INK2,
-            va="bottom")
+    def build(w, h):
+        fig, ax = plt.subplots(figsize=(w, h))
+        for i, (_, m) in enumerate(res):
+            fails = m < 1.0
+            ax.barh(i, m, height=0.58, color=RED if fails else BLUE,
+                    hatch="////" if fails else None, edgecolor="white", lw=0, zorder=3)
+        ax.axvline(1.0, color=INK, ls="--", lw=0.9, zorder=4)
+        ax.set_yticks(range(len(res)))
+        ax.set_yticklabels([PRETTY.get(n, n) for n, _ in res])
+        ax.set_ylim(-0.6, len(res) - 0.4)
+        ax.set_xlim(0, 3.5)
+        ax.set_xlabel(r"$F_{av}/F_{req}$, 20$^\circ$ slope, $\kappa$ = 1")
+        tidy(ax, "x")
+        ax2 = ax.twinx()                    # values outside the plot area
+        ax2.set_ylim(ax.get_ylim())
+        ax2.set_yticks(range(len(res)))
+        ax2.set_yticklabels([f"{m:.2f}" for _, m in res])
+        for lab, (_, m) in zip(ax2.get_yticklabels(), res):
+            lab.set_color(RED if m < 1.0 else INK)
+        ax2.tick_params(axis="y", length=0, pad=3)
+        bare(ax2)
+        handles = [Patch(color=BLUE, label="met"),
+                   Patch(facecolor=RED, hatch="////", edgecolor="white", label="not met"),
+                   Line2D([], [], color=INK, ls="--", lw=0.9, label="margin = 1")]
+        fig.legend(handles=handles, loc="upper center", bbox_to_anchor=(0.5, -0.01),
+                   ncol=3, columnspacing=1.2, handletextpad=0.5, handlelength=1.6)
+        return fig
 
-    pretty = {"dry_sand": "dry sand", "sandy_loam": "sandy loam",
-              "clayey_soil": "clayey soil", "lunar_average": "lunar average",
-              "titan_lunar_proxy": "Titan lunar proxy", "mss_a": "MSS-A",
-              "mss_b": "MSS-B", "snow_msa": "snow (MSA)",
-              "liquefied_soft": "liquefied soft ground"}
-    labels = [pretty.get(n, n) + ("  *" if m else "") for n, _, m in res]
-    ax.set_yticks(range(len(res)))
-    ax.set_yticklabels(labels, fontsize=7)
-    ax.set_xlabel("thrust available / thrust required")
-    ax.set_xlim(0, 4.1)
-    ax.set_ylim(-0.7, len(res) + 0.15)
-    ax.set_title("Traction, not flotation, is the design driver", loc="left",
-                 color=INK, pad=8)
-    ax.annotate("*  the only cases with a measured drawbar coefficient",
-                (0, -0.19), xycoords="axes fraction", fontsize=6.5, color=MUTED)
-    for side in ("top", "right"):
-        ax.spines[side].set_visible(False)
-    ax.grid(axis="x", alpha=0.9)
-    ax.set_axisbelow(True)
-    save(fig, "fig4_drawbar_margin")
+    render("fig4_drawbar_margin", build, COL_W, 2.35)
+
+
+# =========================================================================
+def fig5_traction_calibration():
+    """Titan drawbar margin against the screw traction efficiency kappa."""
+    def margin(k):
+        return run(gm=dc.replace(GEOM, traction_efficiency=k)).performance["drawbar_margin"]
+
+    kappas = [0.2 + 0.02 * i for i in range(41)]
+    margins = [margin(k) for k in kappas]
+    points = [(1.00, "o", BLUE, "uncorrected"),
+              (0.65, "s", ORANGE, "MSA slope tests"),
+              (0.35, "^", ORANGE, "MSA towing test")]
+    pm = {k: margin(k) for k, *_ in points}
+
+    def build(w, h):
+        fig, ax = plt.subplots(figsize=(w, h))
+        ax.axvspan(0.35, 0.65, color=ORANGE, alpha=0.13, lw=0, zorder=1)
+        ax.plot(kappas, margins, color=BLUE, lw=1.6, zorder=3)
+        ax.axhline(1.0, color=INK, ls="--", lw=0.9, zorder=2)
+        for k, mk, c, _ in points:
+            ax.plot([k], [pm[k]], ls="none", marker=mk, ms=5.0, mfc=c, mec="white",
+                    mew=0.7, zorder=5)
+        ax.set_xlim(0.2, 1.02)
+        ax.set_ylim(0, 3)
+        ax.set_xlabel(r"screw traction efficiency, $\kappa$")
+        ax.set_ylabel(r"$F_{av}/F_{req}$, 20$^\circ$ slope")
+        tidy(ax, "both")
+        handles = [Line2D([], [], color=BLUE, lw=1.6, label="baseline design"),
+                   Patch(color=ORANGE, alpha=0.25, label=r"$\kappa$ calibrated on the MSA"),
+                   Line2D([], [], color=INK, ls="--", lw=0.9, label="margin = 1")]
+        handles += [Line2D([], [], ls="none", marker=mk, ms=5.0, mfc=c, mec="white",
+                           label=f"{lab}, {pm[k]:.2f}")
+                    for k, mk, c, lab in points]
+        fig.legend(handles=handles, loc="upper center", bbox_to_anchor=(0.5, -0.01),
+                   ncol=2, columnspacing=0.8, handletextpad=0.5, handlelength=1.8)
+        return fig
+
+    render("fig5_traction_calibration", build, COL_W, 2.2)
 
 
 if __name__ == "__main__":
+    EXTRA_OUT.extend(sys.argv[1:])
     print("rendering figures")
     fig1_closure_limit()
     fig2_sensitivity()
     fig3_feasibility_box()
     fig4_drawbar_margin()
+    fig5_traction_calibration()
     print("done")
