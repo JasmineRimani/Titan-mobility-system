@@ -161,6 +161,38 @@ def table_completeness(rows):
     return "\n".join(lines)
 
 
+def print_paper_counts(rows):
+    """Tables 3 and 4 of the IAC-26 paper, printed in the form the paper uses."""
+    def has(r, key):
+        return num(r[key]) is not None
+
+    arch = {}
+    for r in rows:
+        arch[r["architecture"]] = arch.get(r["architecture"], 0) + 1
+    print("\nTable 3 of the paper, inventory by architecture:")
+    for a, n in sorted(arch.items(), key=lambda kv: (-kv[1], kv[0])):
+        print("  %-40s %3d" % (a, n))
+    print("  %-40s %3d" % ("total, excluding the synthetic example", len(rows)))
+
+    geometry = ("drum_diameter_m", "blade_height_m", "length_m", "pitch_m")
+    checks = (
+        ("at least one total-mass field",
+         lambda r: has(r, "mass_kg") or has(r, "gross_mass_kg")),
+        ("mobility mass", lambda r: has(r, "mobility_mass_kg")),
+        ("payload mass", lambda r: has(r, "payload_mass_kg")),
+        ("power", lambda r: has(r, "power_W")),
+        ("speed", lambda r: has(r, "speed_mps")),
+        ("drum diameter, blade height, length and lead together",
+         lambda r: all(has(r, k) for k in geometry)),
+        ("drawbar coefficient", lambda r: has(r, "mu_drawbar")),
+    )
+    print("\nTable 4 of the paper, populated records out of %d:" % len(rows))
+    for label, test in checks:
+        hits = [r["system_id"] for r in rows if test(r)]
+        extra = "   " + ", ".join(hits) if len(hits) <= 3 else ""
+        print("  %-55s %3d%s" % (label, len(hits), extra))
+
+
 def main():
     rows = load()
     os.makedirs(OUT, exist_ok=True)
@@ -184,6 +216,8 @@ def main():
             v = sorted(x for _, x in d[arch])
             print("  %-8s %-12s n=%d median %.1f range %.1f to %.1f"
                   % (label, arch, len(v), st.median(v), min(v), max(v)))
+
+    print_paper_counts(rows)
 
 
 if __name__ == "__main__":

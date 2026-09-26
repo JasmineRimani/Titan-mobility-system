@@ -101,7 +101,7 @@ MSA_MEASURED = {
     "towing_over_weight_clay_loaded": 425.0 / 3954.0, "slip_at_peak_clay": 0.28,
 }
 # Wong's own dry-sand set (n = 1.1, k_phi 1.528e6) against the Patel table
-# (n = 1, k_phi 1.52e5): the README flags the discrepancy, this block shows
+# (n = 1, k_phi 1.52e5): docs/MODEL_NOTES.md (section 4b) flags the discrepancy, this block shows
 # what each does to the MSA sinkage.
 SAND_WONG = Terrain("dry_sand_wong", 990.0, 1.528e6, 1.1, 1040.0, 28.0, 0.025,
                     1520.0, None, "Wong 2001 as usually quoted", "check the book",

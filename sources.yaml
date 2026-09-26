@@ -3,8 +3,12 @@
 # code, the CSVs and the README. "supplies" lists what this package actually
 # takes from each source, so a reader can check any value at its origin.
 #
-# pdf: the filename as shared with the class. Papers are distributed
-# separately; this file is the index, not a copy of them.
+# pdf: the local filename of the document the values were checked against,
+# kept for traceability. None of the documents are distributed with this
+# repository; this file is the index, not a copy of them.
+#
+# The sources cited in the IAC-26 paper that goes with this code are mapped to
+# these source_ids in docs/PAPER_MAP.md.
 
 villacres2023:
   authors: J. Villacres, M. Barczyk, M. Lipsett
@@ -36,7 +40,12 @@ richter2022:
     - Statement that 22 deg maximises drawbar pull and minimises slip (attributed to Cole 1961)
     - Screw drive 1.6 N m continuous, 2.0 N m peak, screw lead speed 0.23 m/s
     - Hard-surface failure mode, screw slippage on smooth rigid ground
-  notes: Table I of the paper did not survive text extraction; robot mass not captured.
+  notes: >
+    Table I of the paper is an image and did not survive text extraction.
+    Read from the page directly: body module 1.0 kg for a 128 mm by 196 mm
+    screw segment including its drive and electronics (12.7 kg/m2 of drum
+    surface), system mass 6.1 kg, 310 W per module and 1240 W for four
+    modules. These values are in data/vehicles.csv and data/running_gear.csv.
 
 chen2025:
   authors: D. Chen, Z. Samuels, L. Peiros, S. Mukherjee, M. C. Yip
@@ -247,7 +256,7 @@ osinski2015:
 rimani_week4_mobility:
   authors: J. Rimani
   title: "Week 4: Mobility"
-  venue: Politecnico di Torino, space robotics course lecture notes
+  venue: Politecnico di Torino, space robotics course lecture notes (not publicly distributed)
   pdf: Week 4 - Mobility.pdf
   supplies:
     - Drive module mass bracket, 0.5 to 2 kg per wheel module, flight-like designs higher
@@ -272,7 +281,7 @@ rimani_week4_mobility:
 rimani_week3_manipulation:
   authors: J. Rimani
   title: "Week 3: Manipulation Fundamentals"
-  venue: Politecnico di Torino, space robotics course lecture notes
+  venue: Politecnico di Torino, space robotics course lecture notes (not publicly distributed)
   pdf: Week 3 - Manipulation Fundamentals.pdf
   supplies:
     - Worked example of an empirical mass scaling law, m_arm = 2.5 * reach * payload^0.3, with a 25 percent design margin
@@ -283,3 +292,65 @@ rimani_week3_manipulation:
     manipulation. It is the template for the FORM a mass estimating
     relationship should take, and for the datasheet match at the end of the
     chain.
+
+# --- Rows transcribed from the authors' working spreadsheet ----------------
+# source_ids starting with user_db_ mark rows that were transcribed from the
+# authors' working vehicle spreadsheet (Innovative_mobility.xlsx, not public)
+# and have not yet been resolved to a primary reference. They are
+# lower-evidence entries: none of them is used as a validation case, and the
+# evidence column of data/vehicles.csv says what each value is. Resolving
+# them to primary references is open work.
+
+user_db_num2_num5:
+  title: Working spreadsheet, references num2 and num5 (technological machine for the Arctic, ARCTIC-01)
+  status: primary reference not yet resolved
+  supplies:
+    - Dry and gross mass, installed power
+
+user_db_autoevolution:
+  title: Working spreadsheet, web source on the ZIL-29061 (ZIL-29061)
+  status: primary reference not yet resolved; sources disagree on the mass
+  supplies:
+    - Gross mass, low confidence
+
+user_db_num6:
+  title: Working spreadsheet, reference num6 (Auger Driven Ice Surveyor, ADIS-01)
+  status: primary reference not yet resolved
+  supplies:
+    - Dry and gross mass, payload mass, installed power
+    - Mobility mass inferred from schematics and component list (two CIM M4-R0062-12 propulsion motors)
+
+user_db_zvm:
+  title: Working spreadsheet, ZVM-2901 and ZVM-2902 screw vehicles (ZVM-2901, ZVM-2902)
+  status: primary reference not yet resolved
+  supplies:
+    - Gross and payload mass; installed power range 87.5 to 99.2 kW not resolved to one value
+
+user_db_csub:
+  title: Working spreadsheet, CSUB screw vehicle (CSUB-01)
+  doi: 10.1016/j.joes.2025.07.003
+  status: DOI recorded in the row notes; values not yet re-checked against the paper
+  supplies:
+    - Gross mass and mobility mass, medium confidence
+
+user_db_weasel:
+  title: Working spreadsheet, M29C Weasel tracked vehicle (M29C)
+  status: primary reference not yet resolved
+  supplies:
+    - Gross mass, other mass and installed power (70 bhp)
+  notes: villacres2023 gives VCI 16 for the M29C against 6 for the MSA.
+
+user_db_maarco:
+  title: Working spreadsheet, MAARCO screw vehicle (MAARCO)
+  status: qualitative reference only, no numbers taken
+
+user_db_smart:
+  title: Working spreadsheet, SMART screw prototype (SMART)
+  status: qualitative reference only, no numbers taken
+
+SYNTHETIC_DEMO:
+  title: Synthetic demonstration vehicle (DEMO-01), not a real vehicle
+  notes: >
+    Exists only so that the Level B reconstruction path in validate.py has one
+    row it can run on. Excluded from every statistic and from the paper
+    tables.

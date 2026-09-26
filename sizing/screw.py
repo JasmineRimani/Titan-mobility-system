@@ -1,5 +1,8 @@
 """Reduced-order screw-terrain model (Level 1).
 
+"Paper Eq. (n)" below refers to the equations of Lukianov and Rimani,
+IAC-26,A3,IP,204,x115954 (77th IAC, Antalya, 2026); see CITATION.cff.
+
 Pieces, each replaceable and each with a source:
 
 1. Sinkage and compaction resistance
@@ -46,7 +49,7 @@ class ScrewGeometry:
     # 1.20 / 0.45 when the mass screen moved to the lander-only 213 kg
     # benchmark: this is the smallest geometry in the trade space that
     # passes every screen, including drum-only flotation, on the Titan
-    # lunar-proxy soil. See outputs/trade_space.csv and README section 10.
+    # lunar-proxy soil. See outputs/trade_space.csv and docs/MODEL_NOTES.md section 10.
     n_screws: int = 2
     drum_diameter: float = 0.55      # m, D_drum
     blade_height: float = 0.08       # m, BH
@@ -71,7 +74,7 @@ class ScrewGeometry:
 
     @property
     def helix_angle(self) -> float:
-        """Lead angle at the mean diameter, rad."""
+        """Lead angle at the mean diameter, rad. Paper Eq. (2)."""
         return math.atan2(self.pitch, math.pi * self.mean_diameter)
 
     @property
@@ -80,7 +83,7 @@ class ScrewGeometry:
 
     @property
     def screw_efficiency(self) -> float:
-        """Power-screw efficiency, eta = tan(lam) / tan(lam + rho)."""
+        """Power-screw efficiency, eta = tan(lam) / tan(lam + rho). Paper Eq. (3)."""
         lam = self.helix_angle
         rho = math.atan(self.soil_metal_friction)
         return math.tan(lam) / math.tan(lam + rho)
@@ -111,7 +114,7 @@ RECOMMENDED_HELIX_ANGLE_DEG = {"granular": 35.0, "general": 22.0, "submerged": 3
 
 
 def contact_width(z: float, D: float) -> float:
-    """Chord width of a cylinder of diameter D sunk to depth z."""
+    """Chord width of a cylinder of diameter D sunk to depth z. Paper Eq. (4)."""
     if z <= 0.0:
         return 1e-6
     if z >= D / 2.0:
@@ -120,7 +123,7 @@ def contact_width(z: float, D: float) -> float:
 
 
 def sinkage(load_per_screw: float, geom: ScrewGeometry, terrain) -> float:
-    """Static sinkage z [m] from Bekker pressure-sinkage.
+    """Static sinkage z [m] from Bekker pressure-sinkage. Paper Eq. (5).
 
         W / (b(z) * L) = (k_c / b(z) + k_phi) * z^n
     """
@@ -165,7 +168,7 @@ def check_validity(z: float, geom: ScrewGeometry, quiet: bool = False) -> bool:
 
 
 def compaction_resistance(z: float, geom: ScrewGeometry, terrain) -> float:
-    """Bekker compaction resistance per screw, N."""
+    """Bekker compaction resistance per screw, N. Paper Eq. (6)."""
     b = contact_width(z, geom.outer_diameter)
     return b * (terrain.k_c / b + terrain.k_phi) * z ** (terrain.n + 1.0) / (terrain.n + 1.0)
 
@@ -177,11 +180,12 @@ def bulldozing_flag(z: float, geom: ScrewGeometry) -> bool:
 
 def drawbar_available(load_per_screw: float, slip: float, geom: ScrewGeometry,
                       terrain) -> float:
-    """Available axial thrust per screw, N.
+    """Available axial thrust per screw, N. Paper Eq. (10), per screw.
 
     Mohr-Coulomb ceiling on the contact patch, mobilised by a
     Janosi-Hanamoto slip term, then capped by a measured drawbar coefficient
-    when the terrain case has one.
+    when the terrain case has one. With traction_efficiency = 1 and no
+    measured cap it reduces to paper Eq. (9).
     """
     ceiling = coulomb_ceiling(load_per_screw, geom, terrain) * geom.traction_efficiency
     if terrain.mu_db_max is not None:
@@ -191,6 +195,8 @@ def drawbar_available(load_per_screw: float, slip: float, geom: ScrewGeometry,
 
 def coulomb_ceiling(load_per_screw: float, geom: ScrewGeometry, terrain) -> float:
     """Uncorrected Mohr-Coulomb shear limit on the equivalent contact patch, N.
+
+    The bracketed term of paper Eq. (9).
 
     A_c c + W_s tan(phi), with A_c = b(z) L at the static sinkage. This is
     what a rigid running gear could mobilise at most; a rotating screw in
@@ -203,7 +209,10 @@ def coulomb_ceiling(load_per_screw: float, geom: ScrewGeometry, terrain) -> floa
 
 
 def slip_mobilisation(slip: float, geom: ScrewGeometry, terrain) -> float:
-    """Janosi-Hanamoto mobilisation factor in [0, 1] for shear travel j = s L."""
+    """Janosi-Hanamoto mobilisation factor in [0, 1] for shear travel j = s L.
+
+    The last factor of paper Eqs. (9) and (10).
+    """
     travel = max(slip, 1e-6) * geom.length
     return 1.0 - (terrain.shear_K / travel) * (1.0 - math.exp(-travel / terrain.shear_K))
 
@@ -231,7 +240,7 @@ def equilibrium_slip(load_per_screw: float, required_per_screw: float,
 
 
 def kinematics(geom: ScrewGeometry, speed: float, slip: float):
-    """(omega [rad/s], ideal speed [m/s]) for a target ground speed.
+    """(omega [rad/s], ideal speed [m/s]) for a target ground speed. Paper Eq. (11).
 
     v_ideal = p * omega / (2 pi),  s = 1 - v / v_ideal
     """
@@ -240,7 +249,11 @@ def kinematics(geom: ScrewGeometry, speed: float, slip: float):
 
 
 def torque_and_power(thrust_per_screw: float, geom: ScrewGeometry, omega: float):
-    """Screw torque [N m] and mechanical power per screw [W]."""
+    """Screw torque [N m] and mechanical power per screw [W].
+
+    Paper Eq. (12). The electrical power, n_s T omega / eta_dt, is formed in
+    sizing_loop.size.
+    """
     torque = thrust_per_screw * geom.pitch / (2.0 * math.pi * geom.screw_efficiency)
     return torque, torque * omega
 
@@ -289,6 +302,8 @@ def obstacle_capability(geom: ScrewGeometry, alpha: float = 0.5) -> float:
 def displaced_volume(geom: ScrewGeometry) -> float:
     """Volume displaced by the screw drums when fully submerged, m^3.
 
+    V_drums of paper Eq. (17).
+
         V = n_screws * (pi / 4) * D_drum^2 * L
 
     Drum cylinders only. The helical blades displace a little more, and any
@@ -306,6 +321,8 @@ def displaced_volume(geom: ScrewGeometry) -> float:
 
 def flotation_vol(env, mass: float) -> float:
     """Displaced volume needed to float a vehicle of the given mass, m^3.
+
+    V_req of paper Eq. (17).
 
     Archimedes: rho_liquid * V * g = m * g, so V = m / rho_liquid. Gravity
     cancels, so the requirement is the same on Titan as it would be on Earth

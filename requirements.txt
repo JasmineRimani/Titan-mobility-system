@@ -1,3 +1,5 @@
-# The sizing code itself uses only the Python standard library.
-# matplotlib is optional and only used for the trade-space figure.
+# The model (sizing/) and the scripts run_example.py, validate.py,
+# make_paper_tables.py and fit_mers.py use only the Python standard library.
+# matplotlib is needed for make_figures.py and for the optional
+# outputs/trade_space.png written by run_example.py.
 matplotlib>=3.5

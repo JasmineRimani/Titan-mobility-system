@@ -10,6 +10,11 @@
 
 The loop is the contribution. The database supplies its coefficients and the
 cases it is validated against.
+
+This is the closure loop of Section 4.3 of Lukianov and Rimani,
+IAC-26,A3,IP,204,x115954; the screens applied after convergence are those of
+the paper's Table 6. Paper equation numbers are given next to the lines that
+implement them.
 """
 
 import math
@@ -131,12 +136,15 @@ def size(mission: Mission,
         r_comp = max(r_bekker, r_crr)
 
         frontal_area = geom.n_screws * geom.outer_diameter * 1.2   # ASSUMED
+        # paper Eq. (7)
         f_aero = 0.5 * env.atm_density * mission.drag_coefficient \
             * frontal_area * env.design_wind ** 2
 
+        # paper Eq. (8)
         f_required = (m_total * mission.acceleration
                       + weight * math.sin(math.radians(mission.design_slope))
                       + r_comp + f_aero)
+        # paper Eq. (10)
         f_available = geom.n_screws * drawbar_available(
             load_per_screw, mission.design_slip, geom, terrain)
         s_eq = equilibrium_slip(load_per_screw, f_required / geom.n_screws,
@@ -144,10 +152,10 @@ def size(mission: Mission,
 
         omega, _ = kinematics(geom, mission.target_speed, mission.design_slip)
         torque, p_mech = torque_and_power(f_required / geom.n_screws, geom, omega)
-        p_drive_elec = geom.n_screws * p_mech / mm.drivetrain_efficiency
+        p_drive_elec = geom.n_screws * p_mech / mm.drivetrain_efficiency   # paper Eq. (12)
 
         # rimani_week4_mobility Step 4: gear ratio from the speed requirement,
-        # then the motor torque the datasheet has to supply.
+        # then the motor torque the datasheet has to supply. Paper Eq. (13).
         omega_motor = mission.motor_nominal_rpm * 2.0 * math.pi / 60.0
         gear_ratio = omega_motor / max(omega, 1e-9)
         motor_torque = required_motor_torque(torque, gear_ratio, mm)
@@ -162,6 +170,7 @@ def size(mission: Mission,
                                         mission.drive_session_h, mm)
         m_eps = m_src + m_bat + m_pmad
 
+        # paper Eq. (16); relaxation 0.5 and tolerance 0.1 percent as in Section 4.3.5
         m_dry = (mission.payload_mass + m_mobility + m_eps) / (1.0 - frac_sum)
         m_new = m_dry * (1.0 + mm.margin_fraction)
 
@@ -263,7 +272,7 @@ def size(mission: Mission,
         "aspect_ratio_chen": geom.aspect_ratio,
         "cost_of_transport": cost_of_transport(p_drive_elec, m_total * env.gravity,
                                                mission.target_speed),
-        "mobility_mass_fraction": m_mobility / m_total,
+        "mobility_mass_fraction": m_mobility / m_total,   # paper Eq. (1)
         # slip at which F_av(s) = F_req on this terrain. -1 means traction
         # limited: even full slip cannot supply the required thrust.
         "equilibrium_slip": -1.0 if s_eq is None else s_eq,

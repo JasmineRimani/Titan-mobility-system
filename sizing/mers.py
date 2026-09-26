@@ -1,5 +1,8 @@
 """Mass estimation relationships and subsystem fractions.
 
+"Paper Eq. (n)" below refers to the equations of Lukianov and Rimani,
+IAC-26,A3,IP,204,x115954 (77th IAC, Antalya, 2026); see CITATION.cff.
+
 Terramechanics sizes a vehicle from a given mass. It does not tell you what
 the drive module weighs. That mapping is what closes the loop.
 
@@ -28,7 +31,7 @@ HOW THE DRIVE MODULE IS SIZED HERE, AND WHY
 
   So the default model here is a MODULE MASS, not a regression. One number
   per driven screw, from a sourced bracket, with the required motor torque
-  and gear ratio reported alongside it so the student can do the datasheet
+  and gear ratio reported alongside it so the reader can do the datasheet
   match that the course actually teaches.
 
   If catalogue data is later collected, set actuator_model="power_law" and
@@ -205,12 +208,19 @@ def drive_module_mass(torque: float, mm: MassModel) -> float:
 
 def required_motor_torque(screw_torque: float, gear_ratio: float,
                           mm: MassModel) -> float:
-    """rimani_week4_mobility Step 4.  tau_motor ~ margin * tau / (G * eta_g)."""
+    """rimani_week4_mobility Step 4.  tau_motor ~ margin * tau / (G * eta_g).
+
+    Paper Eq. (13), with eta_g = 0.59 (patel2005) and margin gamma_T = 2.
+    """
     return mm.motor_torque_margin * screw_torque / (gear_ratio * 0.59)
 
 
 def running_gear_mass(geom, mm: MassModel) -> float:
-    """Drums, helices and bearings for all screws, kg. PLACEHOLDER densities."""
+    """Drums, helices and bearings for all screws, kg. Paper Eq. (14).
+
+    The areal densities are provisional (paper Table 5) and are the dominant
+    uncertainty in the converged mass (paper Fig. 1).
+    """
     import math
     shell = math.pi * geom.drum_diameter * geom.length * mm.drum_areal_density
     turns = geom.length / geom.pitch
@@ -222,7 +232,7 @@ def running_gear_mass(geom, mm: MassModel) -> float:
 
 def eps_mass(p_house: float, p_drive_elec: float, drive_duty: float,
              drive_session_h: float, mm: MassModel):
-    """(source mass, battery mass, pmad mass) in kg."""
+    """(source mass, battery mass, pmad mass) in kg. Paper Eq. (15)."""
     p_source = p_house + drive_duty * p_drive_elec
     m_source = p_source / mm.source_specific_power
     deficit = max(0.0, p_house + p_drive_elec - p_source)

@@ -3,8 +3,14 @@
     python make_figures.py              writes into figures/
     python make_figures.py OUTDIR       writes into OUTDIR as well
 
-Writes fig1..fig5 as PDF (for the paper) and PNG (for checking). Every
-figure is generated from the model, so it cannot drift from the code.
+Writes fig1..fig5 as PDF (for the paper) and PNG (for checking). The file
+numbers follow the figure numbers of the IAC-26 paper:
+  fig1_sensitivity            Fig. 1, one-at-a-time sensitivity of the mass
+  fig2_closure_limit          Fig. 2, converged mass against drum areal density
+  fig3_drawbar_margin         Fig. 3, thrust ratio on every terrain case
+  fig4_traction_calibration   Fig. 4, thrust ratio against kappa
+  fig5_feasibility_box        Fig. 5, feasibility box
+Every figure is generated from the model, so it cannot drift from the code.
 
 Layout rules, kept deliberately strict so the figures stay clean at column
 width in a two-column paper:
@@ -138,7 +144,7 @@ def reference_handles():
 
 
 # =========================================================================
-def fig1_closure_limit():
+def fig2_closure_limit():
     """Converged total mass against drum shell areal density."""
     def total(rho):
         return run(mm=dc.replace(MassModel(), drum_areal_density=rho)).total_mass
@@ -184,12 +190,12 @@ def fig1_closure_limit():
                    ncol=2, columnspacing=0.8, handletextpad=0.4, handlelength=1.8)
         return fig
 
-    render("fig1_closure_limit", build, COL_W, 2.3)
+    render("fig2_closure_limit", build, COL_W, 2.3)
     return limit
 
 
 # =========================================================================
-def fig2_sensitivity():
+def fig1_sensitivity():
     """Span of converged total mass when each uncertain input is swept alone."""
     base = run().total_mass
     mmr = lambda **kw: run(mm=dc.replace(MassModel(), **kw)).total_mass
@@ -242,11 +248,11 @@ def fig2_sensitivity():
                    ncol=3, columnspacing=2.0)
         return fig
 
-    render("fig2_sensitivity", build, FULL_W, 2.35)
+    render("fig1_sensitivity", build, FULL_W, 2.35)
 
 
 # =========================================================================
-def fig3_feasibility_box():
+def fig5_feasibility_box():
     """Converged total mass against payload for five drum diameters."""
     payloads = [5, 10, 12, 15, 20, 25, 30, 40]
     diameters = [0.45, 0.55, 0.65, 0.75, 0.85]
@@ -286,7 +292,7 @@ def fig3_feasibility_box():
                    ncol=2, columnspacing=0.8, handletextpad=0.4, handlelength=1.8)
         return fig
 
-    render("fig3_feasibility_box", build, COL_W, 2.3)
+    render("fig5_feasibility_box", build, COL_W, 2.3)
 
 
 # =========================================================================
@@ -297,7 +303,7 @@ PRETTY = {"dry_sand": "dry sand", "sandy_loam": "sandy loam",
           "msa_sand_wes": "sand, MSA*", "liquefied_soft": "wet clay, MSA*"}
 
 
-def fig4_drawbar_margin():
+def fig3_drawbar_margin():
     """Uncorrected drawbar margin of the baseline on every terrain case."""
     res = sorted(((n, run(tr=t).performance["drawbar_margin"])
                   for n, t in CASES.items() if t.has_bekker), key=lambda x: x[1])
@@ -330,11 +336,11 @@ def fig4_drawbar_margin():
                    ncol=3, columnspacing=1.2, handletextpad=0.5, handlelength=1.6)
         return fig
 
-    render("fig4_drawbar_margin", build, COL_W, 2.35)
+    render("fig3_drawbar_margin", build, COL_W, 2.35)
 
 
 # =========================================================================
-def fig5_traction_calibration():
+def fig4_traction_calibration():
     """Titan drawbar margin against the screw traction efficiency kappa."""
     def margin(k):
         return run(gm=dc.replace(GEOM, traction_efficiency=k)).performance["drawbar_margin"]
@@ -369,15 +375,15 @@ def fig5_traction_calibration():
                    ncol=2, columnspacing=0.8, handletextpad=0.5, handlelength=1.8)
         return fig
 
-    render("fig5_traction_calibration", build, COL_W, 2.2)
+    render("fig4_traction_calibration", build, COL_W, 2.2)
 
 
 if __name__ == "__main__":
     EXTRA_OUT.extend(sys.argv[1:])
     print("rendering figures")
-    fig1_closure_limit()
-    fig2_sensitivity()
-    fig3_feasibility_box()
-    fig4_drawbar_margin()
-    fig5_traction_calibration()
+    fig1_sensitivity()
+    fig2_closure_limit()
+    fig3_drawbar_margin()
+    fig4_traction_calibration()
+    fig5_feasibility_box()
     print("done")

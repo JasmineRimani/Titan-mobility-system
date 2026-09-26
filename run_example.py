@@ -12,8 +12,6 @@ import dataclasses
 import math
 import os
 
-import numpy
-
 from sizing.environment import EARTH, MOON, TITAN
 from sizing.mers import (AREAL_DENSITY_EVIDENCE, AREAL_DENSITY_RANGE,
                         MassModel, MODULE_MASS_RANGE_KG)
@@ -416,11 +414,13 @@ def main():
               f"{str(r.feasible):>9s}")
     print()
 
-    # Wide sweep, with the two baseline diameters (0.40 and 0.60 m) spliced
-    # back in. numpy.arange steps straight over both of them, which would
-    # leave the reference design missing from its own trade space.
-    payloads = numpy.arange(5, 50, 5)
-    diameters = numpy.union1d(numpy.arange(0.1, 1.0, 0.2), [0.40, 0.60])
+    # Wide sweep, with the earlier baseline diameters (0.40 and 0.60 m) and
+    # the current one (0.55 m) spliced in. A 0.2 m step walks straight over
+    # all three, which would leave the reference design missing from its own
+    # trade space. Standard library only, so the model runs without numpy.
+    payloads = range(5, 50, 5)
+    diameters = sorted({round(0.1 + 0.2 * i, 3) for i in range(5)}
+                       | {0.40, 0.55, 0.60})
     rows = []
     for d in diameters:
         for pl in payloads:

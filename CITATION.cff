@@ -1,0 +1,56 @@
+cff-version: 1.2.0
+message: >-
+  If you use this code or its vehicle database, please cite the IAC 2026
+  paper given under preferred-citation.
+title: "Titan-mobility-system: preliminary sizing of a screw-propelled planetary rover"
+type: software
+abstract: >-
+  A Phase 0/A sizing method for screw-propelled planetary rovers, with Titan
+  as the reference case. A subsystem mass and power budget is coupled with a
+  reduced-order screw-terrain model inside an iterative mass-closure loop,
+  supported by a vehicle database in which every value carries its
+  definition, evidence level and source. The screw-terrain block and the
+  closure loop are validated against the full-scale trafficability tests of
+  the Marsh Screw Amphibian. The code reproduces every table and figure of
+  the paper.
+authors:
+  - family-names: Rimani
+    given-names: Jasmine
+    affiliation: Politecnico di Torino
+  - family-names: Lukianov
+    given-names: Artur
+    affiliation: Politecnico di Torino
+repository-code: "https://github.com/JasmineRimani/Titan-mobility-system"
+license: MIT
+version: 1.0.0
+keywords:
+  - screw propulsion
+  - Archimedean screw
+  - planetary rover
+  - Titan
+  - terramechanics
+  - mass closure
+  - Phase 0/A design
+  - Marsh Screw Amphibian
+preferred-citation:
+  type: conference-paper
+  title: "Preliminary Design and Performance Assessment of Screw-propelled Vehicle"
+  authors:
+    - family-names: Lukianov
+      given-names: Artur
+      affiliation: Politecnico di Torino
+    - family-names: Rimani
+      given-names: Jasmine
+      affiliation: Politecnico di Torino
+  collection-title: "Proceedings of the 77th International Astronautical Congress (IAC)"
+  conference:
+    name: "77th International Astronautical Congress (IAC 2026)"
+    city: Antalya
+    country: TR
+    date-start: 2026-10-05
+    date-end: 2026-10-09
+  publisher:
+    name: International Astronautical Federation (IAF)
+  number: "IAC-26,A3,IP,204,x115954"
+  year: 2026
+  month: 10
