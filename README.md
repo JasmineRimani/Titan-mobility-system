@@ -28,12 +28,6 @@ figures. Every number in the package is either traced to a source in
 `sources.yaml` or labelled `PLACEHOLDER`, `ASSUMED` or `CHOICE`. Nothing sits
 in between.
 
-![One-at-a-time sensitivity of the converged mass of the baseline Titan design, paper Fig. 1](figures/fig1_sensitivity.png)
-
-*Paper Fig. 1. Which uncertain input moves the converged mass of the baseline
-design, and by how much. Blue ranges are taken from a source, orange ranges
-are assumed.*
-
 ---
 
 ## Quick start
