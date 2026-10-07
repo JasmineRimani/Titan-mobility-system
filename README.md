@@ -20,13 +20,13 @@ screw-terrain model inside an iterative mass-closure loop. A vehicle
 database, in which every value carries its definition, evidence level and
 source, supplies the priors and the validation cases. The screw-terrain block
 and the loop are checked against the full-scale trafficability tests of the
-Marsh Screw Amphibian, and every table and figure of the paper is regenerated
-from this code.
+Marsh Screw Amphibian. Regression tests retain the paper's model and database
+checks; the paper-production scripts are no longer included.
 
 Pure Python, standard library only; matplotlib is needed only for the
-figures. Every number in the package is either traced to a source in
-`sources.yaml` or labelled `PLACEHOLDER`, `ASSUMED` or `CHOICE`. Nothing sits
-in between.
+optional trade-space plot. Every number in the package is either traced to
+a source in `sources.yaml` or labelled `PLACEHOLDER`, `ASSUMED` or `CHOICE`.
+Nothing sits in between.
 
 ---
 
@@ -36,18 +36,19 @@ in between.
 git clone https://github.com/JasmineRimani/Titan-mobility-system.git
 cd Titan-mobility-system
 
-python run_example.py          # baseline Titan design, cross-checks, gravity study, sensitivity
-python validate.py             # database priors and the Marsh Screw Amphibian validation
-python make_paper_tables.py    # database tables of the paper, LaTeX in outputs/
+python3 run_example.py         # baseline Titan design, cross-checks, gravity study, sensitivity
+python3 validate.py            # database priors and the Marsh Screw Amphibian validation
 
-pip install -r requirements.txt
-python make_figures.py         # the five paper figures, PDF and PNG in figures/
+python3 -m unittest discover -s tests -v   # model and database regression checks
 
-python -m unittest discover -s tests -v   # checks that the code still reproduces the paper
+# Optional: also generate outputs/trade_space.png
+python3 -m pip install -r requirements.txt
+python3 run_example.py
 ```
 
-Each script runs in a few seconds and writes only to `outputs/` and
-`figures/`. Tested with Python 3.10 and 3.12.
+Generated CSV files and the optional plot are written to `outputs/`.
+CI runs the tests and maintained scripts on Python 3.10 and 3.12, including
+the optional plotting path.
 
 To size a case of your own, change the inputs and call the loop directly:
 
@@ -102,15 +103,20 @@ what a Phase 0 trade-off needs.
 
 ---
 
-## Reproducing the paper
+## Paper results and regression checks
 
-| Paper | Produced by |
+The model and database checks remain in CI. The paper-production scripts
+`make_paper_tables.py`, `fit_mers.py` and `make_figures.py` have been removed
+and are not required to run the model or tests. The existing paper figures
+remain in `figures/`.
+
+| Paper | Current output or check |
 |---|---|
 | Tables 1, 2, 5, 6 and 7, the inputs | defaults in `sizing/environment.py`, `sizing/terrain.py`, `sizing/mers.py`, `sizing/screw.py` and `sizing/sizing_loop.py` |
-| Tables 3 and 4, the database | `make_paper_tables.py` |
+| Tables 3 and 4, the database | `data/vehicles.csv`, checked directly by `tests/test_paper_numbers.py` |
 | Tables 8 and 9, the baseline design | `run_example.py` |
 | Tables 10 and 11, the Marsh Screw Amphibian validation | `validate.py`, Levels A and C |
-| Figs. 1 to 5 | `make_figures.py`, written to `figures/fig1_sensitivity` to `figures/fig5_feasibility_box` |
+| Figs. 1 to 5 | retained files in `figures/`; underlying numerical results checked by `tests/test_paper_numbers.py` |
 
 [`docs/PAPER_MAP.md`](docs/PAPER_MAP.md) maps every table, figure, equation
 and reference of the paper to the script, function or `source_id` behind
@@ -176,16 +182,13 @@ sizing/                 the model
   sizing_loop.py        the fixed-point loop and the feasibility screens
 run_example.py          baseline, cross-checks, gravity study, sensitivity, trade space
 validate.py             database priors and validation Levels 0, A, B and C
-make_paper_tables.py    database tables of the paper
-make_figures.py         the five paper figures
-fit_mers.py             actuator mass relations, for when catalogue data exist
 data/
   vehicles.csv          24 vehicles and concepts, plus one labelled synthetic row
   benchmarks.csv        scalar results from the literature to check a design against
   running_gear.csv      the areal-density evidence behind the dominant coefficient
   actuators.csv         actuator rows with a documented mass
 sources.yaml            every source behind every number, by source_id
-figures/                the paper figures, PDF and PNG
+figures/                retained paper figures, PDF and PNG
 tests/                  regression test against the numbers of the paper
 docs/MODEL_NOTES.md     the detailed notes: models, sources, placeholders, validation
 docs/PAPER_MAP.md       paper tables, figures, equations and references against the code

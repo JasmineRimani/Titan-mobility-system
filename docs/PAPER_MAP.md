@@ -6,33 +6,33 @@ The paper:
 > Screw-propelled Vehicle", 77th International Astronautical Congress (IAC),
 > Antalya, Turkiye, 5-9 October 2026, IAC-26,A3,IP,204,x115954.
 
-Every number in the paper is printed by one of the scripts below, and
-`tests/test_paper_numbers.py` checks the headline ones on every run. If a
-number in the paper cannot be found in the output, that is a bug.
+The maintained scripts print the model results, and
+`tests/test_paper_numbers.py` checks the headline model and database values
+on every run. The paper-production scripts `make_paper_tables.py`,
+`fit_mers.py` and `make_figures.py` have been removed. Database checks now
+read `data/vehicles.csv` directly, and the paper figures remain in `figures/`.
 
 ```bash
-python run_example.py       # Tables 8 and 9, Sections 5.1 to 5.5, Figs. 1 to 4 in numbers
-python validate.py          # Tables 10 and 11 (Section 4.5), database fractions
-python make_paper_tables.py # Tables 3 and 4, database census and fractions (LaTeX in outputs/)
-python make_figures.py      # Figs. 1 to 5, PDF and PNG in figures/
+python3 run_example.py      # Tables 8 and 9, Sections 5.1 to 5.5, Figs. 1 to 4 in numbers
+python3 validate.py         # Tables 10 and 11 (Section 4.5), database fractions
+python3 -m unittest discover -s tests -v  # model and database regression checks
 ```
 
 ---
 
 ## Figures
 
-| Paper | File | Script | Numbers printed by |
-|---|---|---|---|
-| Fig. 1, one-at-a-time sensitivity of the converged mass | `figures/fig1_sensitivity` | `make_figures.py` | `run_example.py`, block SENSITIVITY |
-| Fig. 2, converged mass against drum shell areal density | `figures/fig2_closure_limit` | `make_figures.py` | `run_example.py`, block DRUM SHELL AS A REQUIREMENT |
-| Fig. 3, available over required thrust on every terrain case | `figures/fig3_drawbar_margin` | `make_figures.py` | `run_example.py`, block TERRAIN SENSITIVITY, column `margin` |
-| Fig. 4, thrust ratio against the screw traction efficiency kappa | `figures/fig4_traction_calibration` | `make_figures.py` | `run_example.py`, block TRACTION CALIBRATION |
-| Fig. 5, feasibility box | `figures/fig5_feasibility_box` | `make_figures.py` | `make_figures.py` itself |
+| Paper | Retained file (PDF and PNG) | Current numerical output or check |
+|---|---|---|
+| Fig. 1, one-at-a-time sensitivity of the converged mass | `figures/fig1_sensitivity` | `run_example.py`, block SENSITIVITY |
+| Fig. 2, converged mass against drum shell areal density | `figures/fig2_closure_limit` | `run_example.py`, block DRUM SHELL AS A REQUIREMENT |
+| Fig. 3, available over required thrust on every terrain case | `figures/fig3_drawbar_margin` | `run_example.py`, block TERRAIN SENSITIVITY, column `margin` |
+| Fig. 4, thrust ratio against the screw traction efficiency kappa | `figures/fig4_traction_calibration` | `run_example.py`, block TRACTION CALIBRATION |
+| Fig. 5, feasibility box | `figures/fig5_feasibility_box` | `tests/test_paper_numbers.py`, `Figure5FeasibilityBox` |
 
-`python make_figures.py OUTDIR` also copies the five figures into `OUTDIR`,
-for example the folder of a LaTeX manuscript. Each figure is sized to the
-column width (3.08 in) or the text width (6.28 in) of the IAC template, so it
-is placed at 100 % scale.
+These are retained paper assets; CI does not regenerate them. With
+matplotlib installed, `run_example.py` generates the separate
+`outputs/trade_space.png` plot, which CI also checks.
 
 ## Tables
 
@@ -40,8 +40,8 @@ is placed at 100 % scale.
 |---|---|---|
 | Table 1 | Nominal environmental inputs | `sizing/environment.py`, `TITAN` |
 | Table 2 | Adopted terrain inputs | `sizing/terrain.py`, `TITAN_LUNAR_PROXY` |
-| Table 3 | Inventory of the vehicle database by architecture | `make_paper_tables.py`, printed; data in `data/vehicles.csv` |
-| Table 4 | Completeness of the database | `make_paper_tables.py`, printed |
+| Table 3 | Inventory of the vehicle database by architecture | `data/vehicles.csv`; `tests/test_paper_numbers.py`, `Tables3and4Database.test_table3_inventory` |
+| Table 4 | Completeness of the database | `tests/test_paper_numbers.py`, `Tables3and4Database.test_table4_completeness` |
 | Table 5 | Coefficients of the sizing model | `sizing/mers.py` (`MassModel`), `sizing/screw.py` (`ScrewGeometry.soil_metal_friction`, `traction_efficiency`) |
 | Table 6 | Preliminary design screens | `sizing/sizing_loop.py` (`Mission`, checks at the end of `size`) |
 | Table 7 | Baseline geometry and operating assumptions | defaults of `ScrewGeometry` and `Mission` |
@@ -52,9 +52,9 @@ is placed at 100 % scale.
 
 Numbers quoted in the text of Section 5:
 
-| Section | Numbers | Printed by |
+| Section | Numbers | Current output or check |
 |---|---|---|
-| 4.2 | 24 records, field completeness | `make_paper_tables.py` |
+| 4.2 | 24 records, field completeness | checked by `tests/test_paper_numbers.py`, `Tables3and4Database` |
 | 4.4 | six iterations, 445 Wh/km, about 360 m per Earth day | `run_example.py` baseline |
 | 4.4 | mobility mass fraction 0.40 against screw 0.16 to 0.49 and wheeled 0.15 to 0.47 | `run_example.py` CROSS-CHECK, `validate.py` LEVEL 0 |
 | 5.1 | 201 to 485 kg over the drum areal density range | `run_example.py` SENSITIVITY |
@@ -62,7 +62,7 @@ Numbers quoted in the text of Section 5:
 | 5.2 | 7.4, 2.2 and 1.9 mm, 6.1, 1.8 and 1.6 kPa under Earth, lunar and Titan gravity; 7.0 kPa for the Genta rover | `run_example.py` GRAVITY STUDY and CROSS-CHECK |
 | 5.3 | margins 1.59 and 0.86, equilibrium slip 3.6 %, 39 and 16 deg | `run_example.py` TRACTION CALIBRATION |
 | 5.4 | available traction coefficient 0.93, 1.12 and 1.15; about 2 deg on wet clay | `run_example.py` GRAVITY STUDY, both terrains |
-| 5.5 | feasible region of the feasibility box | `make_figures.py`, Fig. 5 |
+| 5.5 | feasible region of the feasibility box | checked by `tests/test_paper_numbers.py`, `Figure5FeasibilityBox` |
 
 ## Equations
 
@@ -70,7 +70,7 @@ Numbers quoted in the text of Section 5:
 
 | Paper | Quantity | Python |
 |---|---|---|
-| Eq. (1) | mobility and payload mass fractions | `size()` result `mobility_mass_fraction`; `validate.py` LEVEL 0; `make_paper_tables.fractions` |
+| Eq. (1) | mobility and payload mass fractions | mobility: `size()` result `mobility_mass_fraction`, `validate.py` LEVEL 0; payload: `payload_mass_kg` divided by total mass in `data/vehicles.csv` |
 | Eq. (2) | outer and mean diameter, lead angle | `ScrewGeometry.outer_diameter`, `.mean_diameter`, `.helix_angle` |
 | Eq. (3) | power-screw efficiency | `ScrewGeometry.screw_efficiency` |
 | Eq. (4) | equivalent-cylinder contact width | `screw.contact_width` |

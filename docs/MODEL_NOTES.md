@@ -144,8 +144,8 @@ An earlier version of this package carried an invented power law
 `m = a * T^b` for motors and gearboxes, fitted to synthetic rows in
 `data/actuators.csv`. Both are gone. Not one source in `sources.yaml` gives a
 rated torque and a mass for the same actuator, so that regression could not be
-fitted, checked or defended. `fit_mers.py` now prints exactly which rows are
-missing which half.
+fitted, checked or defended. The former `fit_mers.py` paper utility reported
+which rows were missing which half; that script is no longer included.
 
 The method taught in rimani_week4_mobility does not need it. It sizes the
 drive by torque and speed, matches a datasheet, and takes the module mass from
@@ -513,3 +513,7 @@ now scales blade height, length and lead in the baseline proportions, so it
 passes through the baseline design; under 213 kg the 0.55 m drum passes up to
 20 kg of payload. The figure files are numbered as in the paper
 (`fig1_sensitivity` is Fig. 1, and so on).
+
+The paper-production scripts were subsequently removed. The figure files
+remain in `figures/`; current CI checks their underlying numerical results
+and the optional trade-space plot from `run_example.py`.

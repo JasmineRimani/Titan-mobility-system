@@ -1,5 +1,4 @@
-# The model (sizing/) and the scripts run_example.py, validate.py,
-# make_paper_tables.py and fit_mers.py use only the Python standard library.
-# matplotlib is needed for make_figures.py and for the optional
+# The model (sizing/), tests, run_example.py and validate.py use only the
+# Python standard library. matplotlib enables the optional
 # outputs/trade_space.png written by run_example.py.
 matplotlib>=3.5

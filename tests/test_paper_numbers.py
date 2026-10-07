@@ -11,10 +11,12 @@ tolerances are the rounding the paper uses. A failure therefore means the
 code no longer reproduces a published number. Either the change that caused
 it is a mistake, or the paper numbers are superseded by a deliberate model
 change, in which case update the expected value here and say why in the
-commit message. Standard library only.
+commit message. Standard library only; the database checks read the CSV
+directly and do not depend on the paper-generation scripts.
 """
 
 import contextlib
+import csv
 import dataclasses
 import io
 import os
@@ -26,7 +28,6 @@ import warnings
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
 
-import make_paper_tables  # noqa: E402
 import run_example  # noqa: E402
 import validate  # noqa: E402
 from sizing.environment import TITAN  # noqa: E402
@@ -255,7 +256,11 @@ class Sections52and54Gravity(unittest.TestCase):
 class Tables3and4Database(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.rows = make_paper_tables.load()
+        with open(os.path.join(ROOT, "data", "vehicles.csv"),
+                  newline="", encoding="utf-8") as f:
+            # The synthetic demo exercises validation, but is not evidence.
+            cls.rows = [r for r in csv.DictReader(f)
+                        if r["source_id"] != "SYNTHETIC_DEMO"]
 
     def test_table3_inventory(self):
         self.assertEqual(len(self.rows), 24)
@@ -268,7 +273,7 @@ class Tables3and4Database(unittest.TestCase):
     def test_table4_completeness(self):
         def n(test):
             return sum(1 for r in self.rows if test(r))
-        has = lambda r, k: make_paper_tables.num(r[k]) is not None  # noqa: E731
+        has = lambda r, k: validate.f(r, k) is not None  # noqa: E731
         geometry = ("drum_diameter_m", "blade_height_m", "length_m", "pitch_m")
         self.assertEqual(n(lambda r: has(r, "mass_kg") or has(r, "gross_mass_kg")), 21)
         self.assertEqual(n(lambda r: has(r, "mobility_mass_kg")), 7)
@@ -279,9 +284,15 @@ class Tables3and4Database(unittest.TestCase):
         self.assertEqual(n(lambda r: has(r, "mu_drawbar")), 1)
 
     def test_section_4_4_mobility_fraction_ranges(self):
-        f = make_paper_tables.fractions(self.rows, "mobility_mass_kg")
-        screw = [v for _, v in f["screw"]]
-        wheel = [v for _, v in f["wheel"]]
+        fractions = {}
+        for row in self.rows:
+            total = validate.total_mass(row)
+            mobility = validate.f(row, "mobility_mass_kg")
+            if total is not None and total > 0 and mobility is not None:
+                fractions.setdefault(row["architecture"], []).append(
+                    100.0 * mobility / total)
+        screw = fractions["screw"]
+        wheel = fractions["wheel"]
         self.assertAlmostEqual(min(screw), 16.4, delta=0.05)
         self.assertAlmostEqual(max(screw), 49.3, delta=0.05)
         self.assertAlmostEqual(min(wheel), 15.0, delta=0.05)

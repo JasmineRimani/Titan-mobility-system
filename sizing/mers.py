@@ -35,7 +35,7 @@ HOW THE DRIVE MODULE IS SIZED HERE, AND WHY
   match that the course actually teaches.
 
   If catalogue data is later collected, set actuator_model="power_law" and
-  supply coefficients fitted with fit_mers.py. The code refuses to use that
+  supply coefficients fitted to those data. The code refuses to use that
   path uncalibrated.
 
 OTHER SOURCED VALUES
@@ -198,8 +198,8 @@ def drive_module_mass(torque: float, mm: MassModel) -> float:
                 "gearbox_a and gearbox_b. No source in sources.yaml gives a "
                 "torque-and-mass pair for one actuator, so these cannot be "
                 "filled from the literature. Collect catalogue rows in "
-                "data/actuators.csv, run fit_mers.py, and paste the "
-                "coefficients into MassModel. Until then use "
+                "data/actuators.csv, fit the mass relations, and supply the "
+                "coefficients in MassModel. Until then use "
                 "actuator_model='module'.")
         t = max(torque, 1e-3)
         return mm.motor_a * t ** mm.motor_b + mm.gearbox_a * t ** mm.gearbox_b
